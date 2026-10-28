@@ -1,12 +1,12 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule, ObserveInstrument } from './app.module.js';
+import { NestFactory } from '@nestjs/core'
+import { AppModule, ObserveInstrument } from './app.module.js'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     instrument: ObserveInstrument,
-  });
-  const KEY = 'hahah'
-  console.log(KEY)
-  await app.listen(process.env.PORT ?? 3000);
+  })
+  app.setGlobalPrefix('api/v1')
+  console.log(123)
+  await app.listen(process.env.PORT ?? 3000)
 }
-await bootstrap();
+await bootstrap()
