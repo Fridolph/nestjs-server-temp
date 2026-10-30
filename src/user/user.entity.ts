@@ -1,46 +1,59 @@
 import type { Relation } from 'typeorm'
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToMany,
-  JoinTable,
-  OneToOne,
+	Entity,
+	PrimaryGeneratedColumn,
+	Column,
+	OneToMany,
+	ManyToMany,
+	JoinTable,
+	OneToOne,
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
 import Roles from '../roles/roles.entity.ts'
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, min } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
 
 @Entity()
 export default class User {
-  @PrimaryGeneratedColumn()
-  id: number
+	@PrimaryGeneratedColumn('increment')
+	id: number
 
-  @Column()
-  @IsString()
-  @IsNotEmpty()
-  username: string
+	@Column({ type: 'varchar', length: 30, unique: true })
+	@IsString()
+	@IsNotEmpty()
+	username: string
 
-  @Column()
-  @IsString()
-  @IsNotEmpty()
-  password: string
+	@Column({ type: 'varchar', length: 11, nullable: true })
+	@IsString()
+	@IsOptional()
+	@IsOptional()
+	phone?: string
 
-  @Column({ type: 'boolean', default: true })
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean
+	@Column({ type: 'varchar', length: 120, nullable: true })
+	@IsString()
+	@IsOptional()
+	@IsOptional()
+	email?: string
 
-  // typescript -> 数据库 关联关系 Mapping
-  @OneToOne(() => Profile, profile => profile.user)
-  profile: Relation<Profile>
+	@Column({ type: 'varchar', length: 32, nullable: true })
+	@IsString()
+	@IsOptional()
+	@IsNotEmpty()
+	password?: string
 
-  @OneToMany(() => Logs, logs => logs.user)
-  logs: Relation<Logs[]>
+	@Column({ type: 'boolean', default: true })
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean
 
-  @ManyToMany(() => Roles, roles => roles.users)
-  @JoinTable({ name: 'users_roles' })
-  roles: Relation<Roles[]>
+	// typescript -> 数据库 关联关系 Mapping
+	@OneToOne(() => Profile, profile => profile.user)
+	profile: Relation<Profile>
+
+	@OneToMany(() => Logs, logs => logs.user)
+	logs: Relation<Logs[]>
+
+	@ManyToMany(() => Roles, roles => roles.users)
+	@JoinTable({ name: 'users_roles' })
+	roles: Relation<Roles[]>
 }

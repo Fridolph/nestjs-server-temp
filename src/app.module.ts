@@ -6,7 +6,6 @@ import Joi from 'joi'
 import { AppController } from './app.controller.ts'
 import { AppService } from './app.service.ts'
 import { UserModule } from './user/user.module.ts'
-import { ProfileController } from './user/profile/profile.controller.ts'
 import { LogsController } from './common/logs/logs.controller.ts'
 import { RolesController } from './roles/roles.controller.ts'
 import { LogsModule } from './common/logs/logs.module.ts'
@@ -48,8 +47,9 @@ const envFilePath = [`.env.${nodeEnv}`, '.env']
     LogsModule,
 
     UserModule,
+
   ],
-  controllers: [AppController, ProfileController, LogsController, RolesController],
+  controllers: [AppController, LogsController, RolesController],
   providers: [AppService],
 })
 export class AppModule {}

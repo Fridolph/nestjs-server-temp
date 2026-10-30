@@ -1,28 +1,26 @@
 import type { Relation } from 'typeorm'
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-} from 'typeorm'
+import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm'
 import User from '../user.entity.ts'
 
 @Entity('profile')
 export default class UserProfile {
-  @PrimaryGeneratedColumn()
-  id: number
+	// 既是主键，也是指向 user.id 的外键；不自增。
+	@PrimaryColumn({ type: 'int' })
+	userId: number
 
-  @Column()
-  gender: number
+	@Column({ type: 'varchar', length: 20, nullable: true })
+	nickname?: string | null
 
-  @Column()
-  photo: string
+	@Column({ type: 'int', nullable: true })
+	gender?: 0 | 1 | null
 
-  @Column()
-  address: string
+	@Column({ type: 'varchar', length: 512, nullable: true })
+	photo?: string | null
 
-  @OneToOne(() => User, (user) => user.profile)
-  @JoinColumn()
-  user: Relation<User>
+	@Column({ type: 'varchar', length: 120, nullable: true })
+	address?: string | null
+
+	@OneToOne(() => User, user => user.profile)
+	@JoinColumn({ name: 'userId', referencedColumnName: 'id' })
+	user: Relation<User>
 }

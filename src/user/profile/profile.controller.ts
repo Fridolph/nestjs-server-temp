@@ -1,4 +1,12 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common'
+import { ProfileService } from './profile.service.ts'
 
-@Controller('profile')
-export class ProfileController {}
+@Controller()
+export class ProfileController {
+	constructor(private readonly profileService: ProfileService) {}
+
+	@Get('users/:id/profile')
+	getUserProfile(@Param('id', ParseIntPipe) id: number) {
+		return this.profileService.getProfile(id)
+	}
+}
