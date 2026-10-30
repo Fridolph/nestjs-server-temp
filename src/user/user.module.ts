@@ -3,7 +3,7 @@ import { UserController } from './user.controller.ts'
 import { UserService } from './user.service.ts'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import User from './user.entity.ts'
-import Logs from '../logs/logs.entity.ts'
+import Logs from '../common/logs/logs.entity.ts'
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Logs])],

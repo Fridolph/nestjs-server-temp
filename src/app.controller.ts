@@ -11,8 +11,7 @@ export class AppController {
 
   @Get()
   getHello(): string {
-    const db = this.configService.get('USERNAME')
-    console.log('test db -> \n', db)
+    // const db = this.configService.get('USERNAME')
     return this.appService.getHello()
   }
 

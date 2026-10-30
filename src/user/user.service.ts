@@ -2,13 +2,13 @@ import type { Repository } from 'typeorm'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import User from './user.entity.ts'
-import Logs from '../logs/logs.entity.ts'
+import Logs from '../common/logs/logs.entity.ts'
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(Logs) private readonly logsRepository: Repository<Logs>,
+    @InjectRepository(Logs) private readonly logsRepository: Repository<Logs>
   ) {}
 
   findAll() {

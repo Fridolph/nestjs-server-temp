@@ -8,7 +8,7 @@ import {
   JoinTable,
   OneToOne,
 } from 'typeorm'
-import Logs from '../logs/logs.entity.ts'
+import Logs from '../common/logs/logs.entity.ts'
 import Roles from '../roles/roles.entity.ts'
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
@@ -34,13 +34,13 @@ export default class User {
   isActive?: boolean
 
   // typescript -> 数据库 关联关系 Mapping
-  @OneToOne(() => Profile, (profile) => profile.user)
+  @OneToOne(() => Profile, profile => profile.user)
   profile: Relation<Profile>
 
-  @OneToMany(() => Logs, (logs) => logs.user)
+  @OneToMany(() => Logs, logs => logs.user)
   logs: Relation<Logs[]>
 
-  @ManyToMany(() => Roles, (roles) => roles.users)
+  @ManyToMany(() => Roles, roles => roles.users)
   @JoinTable({ name: 'users_roles' })
   roles: Relation<Roles[]>
 }

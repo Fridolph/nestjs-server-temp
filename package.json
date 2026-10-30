@@ -10,17 +10,18 @@
     "build": "nest build",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start": "cross-env NODE_ENV=development nest start --env-file .env",
+    "start:dev": "cross-env NODE_ENV=development nest start --watch --env-file .env",
+    "start:debug": "cross-env NODE_ENV=development nest start --debug --watch --env-file .env",
+    "start:prod": "cross-env NODE_ENV=production node dist/src/main.js",
     "lint": "oxlint --type-aware src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "generate:models": "typeorm-model-generator -h 127.0.0.1 -p 3306 -d nestjs_demo -u admin -x admin -e mysql -o ./db-entity"
+    "generate:models": "typeorm-model-generator -h 127.0.0.1 -p 3306 -d nestjs_demo -u admin -x admin -e mysql -o ./db-entity",
+    "typeorm": "typeorm-ts-node-commonjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -31,9 +32,16 @@
     "@nestjs/typeorm": "^12.0.2",
     "class-validator": "^0.15.1",
     "mysql2": "^3.24.6",
+    "nest-winston": "^2.0.0",
+    "nestjs-pino": "^5.3.1",
+    "pino-pretty": "^13.2.0",
+    "pino-roll": "^4.0.0",
     "reflect-metadata": "^0.2.2",
+    "request-ip": "^3.3.0",
     "rxjs": "^7.8.1",
-    "typeorm": "^1.1.2"
+    "typeorm": "^1.1.2",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
@@ -42,9 +50,11 @@
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
+    "@types/request-ip": "^0.0.41",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",
     "config": "^5.0.1",
+    "cross-env": "^10.1.0",
     "dotenv": "^18.0.9",
     "joi": "^18.3.0",
     "js-yaml": "^5.5.0",
@@ -53,9 +63,11 @@
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
+    "ts-node": "^10.9.2",
     "typeorm-model-generator": "^0.4.6",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.2"
-  }
+  },
+  "packageManager": "pnpm@12.14.0"
 }
