@@ -7,6 +7,8 @@ import {
 	ManyToMany,
 	JoinTable,
 	OneToOne,
+	AfterInsert,
+	AfterRemove,
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
 import Roles from '../roles/roles.entity.ts'
@@ -47,7 +49,7 @@ export default class User {
 	isActive?: boolean
 
 	// typescript -> 数据库 关联关系 Mapping
-	@OneToOne(() => Profile, profile => profile.user)
+	@OneToOne(() => Profile, profile => profile.user, { cascade: true })
 	profile: Relation<Profile>
 
 	@OneToMany(() => Logs, logs => logs.user)
@@ -56,4 +58,14 @@ export default class User {
 	@ManyToMany(() => Roles, roles => roles.users)
 	@JoinTable({ name: 'users_roles' })
 	roles: Relation<Roles[]>
+
+	@AfterInsert()
+	afterInsert() {
+		console.log('afterInsert -> ', 'id: ', this.id, ', username: ', this.username)
+	}
+
+	@AfterRemove()
+	afterRemove() {
+		console.log('afterRemove -> ', 'id: ', this.id, ', username: ', this.username)
+	}
 }
