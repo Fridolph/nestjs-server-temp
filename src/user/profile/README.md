@@ -5,7 +5,7 @@
 
 ## 文件与数据流
 
-- `dto/update-profile.dto.ts`：集中定义 Schema，并推导输入类型和 `UpdateProfileDto`，无需 DTO class。
+- `../dto/update-profile.dto.ts`：集中定义 Schema，并推导输入类型和 `UpdateProfileDto`，无需 DTO class。
 - `../../common/pipes/zod-validation.pipe.ts`：执行校验，将错误转换成 HTTP 400，返回转换后的数据。
 - `profile.controller.ts`：为 PATCH 请求显式绑定 Schema，并转换路径中的整数 ID。
 - `profile.service.ts`：继续使用字段白名单构造原生 SQL，只更新提供的字段。
@@ -48,7 +48,7 @@ PATCH /api/v1/users/18/profile
 ## 运行模板测试
 
 ```bash
-pnpm exec vitest run src/user/profile/__tests__/ src/common/pipes/__tests__/zod-validation.pipe.spec.ts
+pnpm exec vitest run src/user/__tests__/ src/common/pipes/__tests__/zod-validation.pipe.spec.ts
 ```
 
 测试不连接数据库。真实应用中仍需配合业务校验和数据库约束。
