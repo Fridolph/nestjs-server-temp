@@ -1,6 +1,7 @@
-import type { UpdateProfileDto } from './profile/dto/update-profile.dto.ts'
+import type { UpdateProfileDto } from './dto/update-profile.dto.ts'
+import type { CreateUserDto } from './dto/create-user.dto.ts'
 
-export type { UpdateProfileDto }
+export type { CreateUserDto, UpdateProfileDto }
 
 export interface QueryUserDto {
 	username?: string
@@ -9,13 +10,6 @@ export interface QueryUserDto {
 	profileId?: number | string
 	page?: number | string
 	size?: number | string
-}
-
-export interface CreateUserDto {
-	username: string
-	password: string
-	phone?: string
-	email?: string
 }
 
 export interface UpdateUserDto {

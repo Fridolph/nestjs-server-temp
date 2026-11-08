@@ -1,5 +1,6 @@
 import type { LoggerService } from '@nestjs/common'
-import type { CreateUserDto, QueryUserDto, UpdateUserDto } from './user.types.ts'
+import type { QueryUserDto, UpdateUserDto } from './user.types.ts'
+import type { CreateUserDto } from './dto/create-user.dto.ts'
 import {
 	Body,
 	Controller,
@@ -15,6 +16,8 @@ import {
 import { UserService } from './user.service.ts'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { TypeormFilter } from '../common/filters/typeorm.filter.ts'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
+import { createUserSchema } from './dto/create-user.dto.ts'
 
 @Controller('users')
 @UseFilters(new TypeormFilter())
@@ -54,8 +57,7 @@ export class UserController {
 	 * @throws ConflictException - 用户服务查询发现用户名已被使用。
 	 */
 	@Post()
-	addUser(@Body() dto: CreateUserDto) {
-		// console.log('🚀 ~ :25 ~ UserController ~ addUser ~ dto:', dto)
+	addUser(@Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserDto) {
 		return this.userService.create(dto)
 	}
 

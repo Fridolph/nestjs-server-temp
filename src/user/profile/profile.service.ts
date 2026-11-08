@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import Profile from './profile.entity.ts'
-import type { UpdateProfileDto } from './dto/update-profile.dto.ts'
+import type { UpdateProfileDto } from '../dto/update-profile.dto.ts'
 
 @Injectable()
 export class ProfileService {

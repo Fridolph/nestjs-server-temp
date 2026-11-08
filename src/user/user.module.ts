@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import User from './user.entity.ts'
 import Logs from '../common/logs/logs.entity.ts'
 import { ProfileModule } from './profile/profile.module.ts'
+import Roles from '../roles/roles.entity.ts'
 
 @Module({
-	imports: [TypeOrmModule.forFeature([User, Logs]), ProfileModule],
+	imports: [TypeOrmModule.forFeature([User, Logs, Roles]), ProfileModule],
 	controllers: [UserController],
 	providers: [UserService],
 	exports: [UserService],

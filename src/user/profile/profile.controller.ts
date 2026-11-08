@@ -1,7 +1,7 @@
-import type { UpdateProfileDto } from './dto/update-profile.dto.ts'
+import type { UpdateProfileDto } from '../dto/update-profile.dto.ts'
 import { Body, Controller, Get, Param, ParseIntPipe, Patch } from '@nestjs/common'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.ts'
-import { updateProfileSchema } from './dto/update-profile.dto.ts'
+import { updateProfileSchema } from '../dto/update-profile.dto.ts'
 import { ProfileService } from './profile.service.ts'
 
 @Controller()

@@ -4,15 +4,23 @@ import User from '../user/user.entity.ts'
 
 @Entity()
 export default class Roles {
-  @PrimaryGeneratedColumn()
-  id: number
+	@PrimaryGeneratedColumn()
+	id: number
 
-  @Column()
-  name: string
+	@Column()
+	name: string
 
-  @Column()
-  description: string
+	@Column({
+		type: 'varchar',
+		length: 32,
+		nullable: false,
+		unique: true,
+	})
+	code: string
 
-  @ManyToMany(() => User, (user) => user.roles)
-  users: Relation<User[]>
+	@Column()
+	description: string
+
+	@ManyToMany(() => User, user => user.roles)
+	users: Relation<User[]>
 }

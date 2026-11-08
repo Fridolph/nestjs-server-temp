@@ -1,10 +1,5 @@
-import type { Repository } from 'typeorm'
-import type {
-	CreateUserDto,
-	QueryUserDto,
-	UpdateUserDto,
-	UserWithProfileRow,
-} from './user.types.ts'
+import { In, type Repository } from 'typeorm'
+import type { QueryUserDto, UpdateUserDto, UserWithProfileRow } from './user.types.ts'
 import {
 	BadRequestException,
 	ConflictException,
@@ -15,7 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import User from './user.entity.ts'
 import Logs from '../common/logs/logs.entity.ts'
 import UserProfile from './profile/profile.entity.ts'
-import { ProfileService } from './profile/profile.service.ts'
+import Roles from '../roles/roles.entity.ts'
+import type { CreateUserDto } from './dto/create-user.dto.ts'
 
 @Injectable()
 export class UserService {
@@ -26,9 +22,9 @@ export class UserService {
 	 * @param logsRepository - 用户日志实体仓库。
 	 */
 	constructor(
-		private readonly profileService: ProfileService,
 		@InjectRepository(User) private readonly userRepository: Repository<User>,
-		@InjectRepository(Logs) private readonly logsRepository: Repository<Logs>
+		@InjectRepository(Logs) private readonly logsRepository: Repository<Logs>,
+		@InjectRepository(Roles) private readonly roleRepository: Repository<Roles>
 	) {}
 
 	/**
@@ -166,35 +162,40 @@ export class UserService {
 	 * 在同一事务中创建用户和默认资料。
 	 *
 	 * @remarks
-	 * 先检查用户名，再保存用户，并以用户名初始化资料昵称。
-	 * 当前仅写入请求中的用户名和密码；任一步骤抛错时回滚事务。
+	 * 先检查用户名和角色，再保存用户，并初始化资料字段。
+	 * 任一步骤抛错时回滚事务。
 	 * 提前查重不保证并发唯一性，仍需数据库唯一约束兜底。
 	 *
 	 * @param createUserDto - 创建用户的请求数据。
 	 * @returns 事务提交后的成功响应，包含业务状态码、成功标记和用户信息提示。
 	 */
 	async create(createUserDto: CreateUserDto) {
-		const dto = {
-			username: createUserDto.username,
-			password: createUserDto.password,
-		}
-
 		const newUser = await this.userRepository.manager.transaction(async manager => {
 			const users = manager.getRepository(User)
 			const profiles = manager.getRepository(UserProfile)
+			const roles = await manager
+				.getRepository(Roles)
+				.findBy({ id: In(createUserDto.roleIds) })
+			if (roles.length !== createUserDto.roleIds.length) {
+				throw new BadRequestException('所选角色不存在')
+			}
 			const isExist = await users.findOne({
-				where: { username: dto.username },
+				where: { username: createUserDto.username },
 			})
 			if (isExist) throw new ConflictException('用户名已被使用')
 
 			const user = users.create({
-				username: dto.username,
-				password: dto.password,
+				username: createUserDto.username,
+				password: createUserDto.password,
+				roles,
 			})
 			await users.save(user)
 			await profiles.insert({
 				userId: user.id,
-				nickname: user.username,
+				nickname: createUserDto.nickname ?? user.username,
+				gender: createUserDto.gender ?? null,
+				photo: createUserDto.photo ?? null,
+				address: createUserDto.address ?? null,
 			})
 			return user
 		})

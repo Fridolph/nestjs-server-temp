@@ -12,7 +12,7 @@ import {
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
 import Roles from '../roles/roles.entity.ts'
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, min } from 'class-validator'
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
 
 @Entity()
@@ -52,10 +52,10 @@ export default class User {
 	@OneToOne(() => Profile, profile => profile.user, { cascade: true })
 	profile: Relation<Profile>
 
-	@OneToMany(() => Logs, logs => logs.user)
+	@OneToMany(() => Logs, logs => logs.user, { cascade: true })
 	logs: Relation<Logs[]>
 
-	@ManyToMany(() => Roles, roles => roles.users)
+	@ManyToMany(() => Roles, roles => roles.users, { cascade: ['insert'] })
 	@JoinTable({ name: 'users_roles' })
 	roles: Relation<Roles[]>
 
