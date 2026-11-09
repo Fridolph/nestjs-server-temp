@@ -4,18 +4,18 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "nestjs-demo",
-            "request": "launch",
-            "runtimeArgs": [
-                "run",
-                "start:debug"
-            ],
-            "runtimeExecutable": "pnpm",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "node"
-        }
+      {
+        "name": "debug nestjs-demo",
+        "request": "launch",
+        "runtimeArgs": [
+          "run-script",
+          "start:debug"
+        ],
+        "runtimeExecutable": "npm",
+        "skipFiles": [
+          "<node_internals>/**"
+        ],
+        "type": "node"
+      }
     ]
 }
