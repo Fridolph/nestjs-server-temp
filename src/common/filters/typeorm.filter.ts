@@ -10,6 +10,7 @@ export class TypeormFilter implements ExceptionFilter {
 			code = exception.driverError.errno
 		}
 		const response = ctx.getResponse()
+		console.log('🚀 TypeormFilter ~ catch ~ response:', response)
 		response.status(500).json({
 			code,
 			timestamp: new Date().toISOString(),

@@ -13,7 +13,7 @@ async function bootstrap() {
 	const logger = app.get<LoggerService>(WINSTON_MODULE_NEST_PROVIDER)
 	app.useLogger(logger)
 	// 注：Nestjs 中 虽可定义多个 GlobalFilter 但只有第一个生效
-	// app.useGlobalFilters(new AllExceptionFilter(logger, app.get(HttpAdapterHost)))
+	app.useGlobalFilters(new AllExceptionFilter(logger, app.get(HttpAdapterHost)))
 
 	const configService = app.get(ConfigService)
 	const prefix = configService.get<string>('PREFIX') ?? 'api'

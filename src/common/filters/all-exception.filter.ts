@@ -4,6 +4,13 @@ import { HttpAdapterHost } from '@nestjs/core'
 import requestIp from 'request-ip'
 import { QueryFailedError } from 'typeorm'
 
+interface ValidationIssue {
+	path: string
+	code: string
+	message: string
+}
+
+/** 统一 HTTP 错误协议，保留可公开的校验信息，隐藏 SQL 和服务端内部错误。 */
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
 	constructor(
@@ -11,41 +18,78 @@ export class AllExceptionFilter implements ExceptionFilter {
 		private readonly httpAdapterHost: HttpAdapterHost
 	) {}
 
-	catch(exception: any, host: ArgumentsHost) {
-		console.log('🚀 AllExceptionFilter ~ catch ~ exception:')
+	catch(exception: unknown, host: ArgumentsHost) {
 		const { httpAdapter } = this.httpAdapterHost
 		const ctx = host.switchToHttp()
 		const request = ctx.getRequest()
 		const response = ctx.getResponse()
+		const path = httpAdapter.getRequestUrl(request).split('?')[0]
+		let httpStatus: number = HttpStatus.INTERNAL_SERVER_ERROR
+		let msg = '服务暂时不可用，请稍后重试'
+		let errors: ValidationIssue[] | undefined
+		let databaseCode: string | undefined
 
-		const httpStatus =
-			exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
-
-		// 加入更多异常错误逻辑
-		let msg: string = exception['response'] || 'Internal Server Error'
 		if (exception instanceof QueryFailedError) {
-			msg = exception.message
+			const driverError = exception.driverError as { code?: string } | undefined
+			databaseCode = driverError?.code
+			if (databaseCode === 'ER_DUP_ENTRY') {
+				httpStatus = HttpStatus.CONFLICT
+				msg = '数据已存在，请检查后重试'
+			} else if (databaseCode === 'ER_ROW_IS_REFERENCED_2') {
+				httpStatus = HttpStatus.CONFLICT
+				msg = '数据仍有关联记录，无法删除或修改'
+			} else if (databaseCode === 'ER_NO_REFERENCED_ROW_2') {
+				httpStatus = HttpStatus.BAD_REQUEST
+				msg = '关联的数据不存在，请检查后重试'
+			}
+		} else if (exception instanceof HttpException) {
+			httpStatus = exception.getStatus()
+			if (httpStatus < HttpStatus.INTERNAL_SERVER_ERROR) {
+				const body = exception.getResponse()
+				if (typeof body === 'string') {
+					msg = body
+				} else {
+					const payload = body as { message?: unknown; errors?: unknown }
+					if (typeof payload.message === 'string') {
+						msg = payload.message
+					} else if (Array.isArray(payload.message) && payload.message.every(item => typeof item === 'string')) {
+						msg = payload.message.join('；')
+					} else {
+						msg = exception.message
+					}
+					if (httpStatus === HttpStatus.BAD_REQUEST && Array.isArray(payload.errors)) {
+						errors = payload.errors.filter((issue): issue is ValidationIssue =>
+							issue !== null && typeof issue === 'object'
+							&& typeof issue.path === 'string'
+							&& typeof issue.code === 'string'
+							&& typeof issue.message === 'string'
+						).map(({ path, code, message }) => ({ path, code, message }))
+					}
+				}
+			}
 		}
 
-		// 返回给客户端的（不放 headers/内部细节）
-		const responseBody = {
-			statusCode: httpStatus,
+		httpAdapter.reply(response, {
+			code: httpStatus,
+			msg,
 			timestamp: new Date().toISOString(),
-			path: httpAdapter.getRequestUrl(request),
-			message: exception instanceof HttpException ? exception.message : 'Internal Server Error',
-		}
-		httpAdapter.reply(response, responseBody, httpStatus) // 只发一次
+			path,
+			...(errors?.length ? { errors } : {}),
+		}, httpStatus)
 
-		// 记给 winston 的结构化 meta
-		this.logger.error({
-			message: 'Unhandled exception',
-			statusCode: httpStatus,
-			path: request.url,
+		// 不记录请求体、完整 headers 或 SQL 参数，避免密码和令牌进入日志。
+		const metadata = {
+			message: 'Request failed',
+			code: httpStatus,
+			path,
 			method: request.method,
 			ip: requestIp.getClientIp(request),
-			headers: request.headers,
-			exception: exception instanceof Error ? exception.message : String(exception),
-			stack: exception instanceof Error ? exception.stack : undefined,
-		})
+			errorType: exception instanceof Error ? exception.name : typeof exception,
+			databaseCode,
+			stack: httpStatus >= 500 && exception instanceof Error && !(exception instanceof QueryFailedError)
+				? exception.stack : undefined,
+		}
+		if (httpStatus >= 500) this.logger.error(metadata)
+		else this.logger.warn(metadata)
 	}
 }

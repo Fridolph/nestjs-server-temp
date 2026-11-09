@@ -3,7 +3,9 @@ import type { CreateUserDto } from './dto/create-user.dto.ts'
 
 export type { CreateUserDto, UpdateProfileDto }
 
+/** 用户列表的 HTTP 查询参数。 */
 export interface QueryUserDto {
+	id?: number | string
 	username?: string
 	gender?: number | string
 	role?: number | string
@@ -12,19 +14,39 @@ export interface QueryUserDto {
 	size?: number | string
 }
 
+/** 已归一化的仓库筛选条件；省略分页时使用第一页、每页 10 条。 */
+export interface UserListCriteria {
+	id?: number
+	username?: string
+	gender?: number
+	role?: number
+	profileId?: number
+	page?: number
+	size?: number
+	offset?: number
+}
+
 export interface UpdateUserDto {
 	phone?: string | null
 	email?: string | null
 	profile?: UpdateProfileDto
 }
 
-// LEFT JOIN 未匹配到资料时，profile 字段为 null。
-export interface UserWithProfileRow {
-	id: number
+/** 用户列表 SQL 的单行结果；LEFT JOIN 未匹配到资料时，资料字段为 null。 */
+export interface UserRow {
+	userId: number
 	username: string
-	nickname: string
+	nickname: string | null
 	profileId: number | null
 	gender: number | null
 	photo: string | null
 	address: string | null
+}
+
+/** 用户角色关联 SQL 的单行结果；不包含用户名或资料字段。 */
+export interface UserRoleRow {
+	userId: number
+	roleId: number
+	roleCode: string
+	roleName: string
 }

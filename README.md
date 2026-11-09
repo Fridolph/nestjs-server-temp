@@ -31,6 +31,16 @@
 $ pnpm install
 ```
 
+## 用户模块开发约定
+
+- Controller 接收并校验 HTTP 参数，Service 编排业务并组装 `code/data/msg`，Repository 仅返回数据或操作结果。
+- 跨表写入共享同一事务 manager；资料更新不存在时返回 404，重复提交原值仍成功。
+- 角色分配按 `code` 拒绝 `super_admin`，不依赖固定角色 ID。
+- 全局过滤器统一错误协议，保留公开的字段校验详情，隐藏 SQL 和内部错误；4xx 记 warn、5xx 记 error，日志不保存请求体、完整 headers 或 SQL 参数。
+- Controller、Service 注释简明；Repository 重点说明业务边界；Entity 字段与关系添加业务行注释，Module 和普通 constructor 不写模板式注释。
+
+资料更新的具体规则与测试见 [Profile 学习说明](src/user/profile/README.md)。
+
 ## Compile and run the project
 
 ```bash
