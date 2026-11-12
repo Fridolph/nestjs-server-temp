@@ -3,6 +3,14 @@ import type { CreateUserDto } from './dto/create-user.dto.ts'
 
 export type { CreateUserDto, UpdateProfileDto }
 
+/** 仅供内部认证读取；不得直接返回接口或写入 JWT、日志。 */
+export interface UserAuthRow {
+	id: number
+	username: string
+	password: string | null
+	isActive: number | boolean
+}
+
 /** 用户列表的 HTTP 查询参数。 */
 export interface QueryUserDto {
 	id?: number | string

@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import dotenv from 'dotenv'
-import { DBConfigEnum } from './src/common/config/db.enum.ts'
+import { ConfigEnum } from './src/common/config/config.enum.ts'
 
 // 通过环境变量读取不同的 .env 文件
 function getEnv(env: string): Record<string, unknown> {
@@ -24,12 +24,12 @@ function buildConnectionOptions() {
 	const entitiesDir = [join(import.meta.dirname, 'src', `**/*.entity.${entityExtension}`)]
 
 	return {
-		type: config[DBConfigEnum.TYPE],
-		host: config[DBConfigEnum.HOST],
-		port: config[DBConfigEnum.PORT],
-		username: config[DBConfigEnum.USERNAME],
-		password: config[DBConfigEnum.PASSWORD],
-		database: config[DBConfigEnum.DATABASE],
+		type: config[ConfigEnum.TYPE],
+		host: config[ConfigEnum.HOST],
+		port: config[ConfigEnum.PORT],
+		username: config[ConfigEnum.USERNAME],
+		password: config[ConfigEnum.PASSWORD],
+		database: config[ConfigEnum.DATABASE],
 		entities: entitiesDir,
 		// 同步本地的schema与数据库 -> 初始化时使用
 		synchronize: true,

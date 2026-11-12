@@ -10,6 +10,7 @@ import { LogsController } from './common/logs/logs.controller.ts'
 import { RolesController } from './roles/roles.controller.ts'
 import { LogsModule } from './common/logs/logs.module.ts'
 import { connectionParams } from '../ormconfig.ts'
+import { AuthModule } from './auth/auth.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule()
 
@@ -47,6 +48,8 @@ const envFilePath = [`.env.${nodeEnv}`, '.env']
     LogsModule,
 
     UserModule,
+
+    AuthModule,
 
   ],
   controllers: [AppController, LogsController, RolesController],

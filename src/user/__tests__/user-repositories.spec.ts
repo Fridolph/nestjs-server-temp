@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 import type { Repository } from 'typeorm'
 import User from '../user.entity.ts'
@@ -69,21 +69,42 @@ function createFixture(roles = [{ id: 20, code: 'admin' }]) {
 		save: vi.fn().mockResolvedValue(undefined),
 	}
 	const profiles = { insert: vi.fn().mockResolvedValue(undefined) }
+	const findRoles = vi.fn().mockResolvedValue(roles)
 	const manager = {
 		getRepository: vi.fn(entity => {
 			if (entity === User) return users
 			if (entity === UserProfile) return profiles
-			if (entity === Roles) return { findBy: vi.fn().mockResolvedValue(roles) }
+			if (entity === Roles) return { findBy: findRoles }
 			throw new Error('Unexpected entity')
 		}),
 	}
 	const transaction = vi.fn(callback => callback(manager))
 	const repository = new UserCreateRpst({ manager: { transaction } } as unknown as Repository<User>)
 	const dto = createUserSchema.parse({ username: 'alice', password: 'secret123', roleIds: [20] })
-	return { repository, users, profiles, dto, transaction }
+	return { repository, users, profiles, dto, transaction, findRoles }
 }
 
 describe('创建用户的角色与事务边界', () => {
+	it('注册按 code 查普通用户，角色 ID 变化也不受影响，忽略内部调用误带的角色 ID', async () => {
+		const { repository, users, dto, findRoles } = createFixture([{ id: 88, code: 'user' }])
+		await repository.createRegisteredUser(dto)
+		expect(findRoles).toHaveBeenCalledWith({ code: 'user' })
+		expect(users.create).toHaveBeenCalledWith(expect.objectContaining({ roles: [{ id: 88, code: 'user' }] }))
+	})
+
+	it('默认角色缺失时注册中止，不写入用户或资料', async () => {
+		const { repository, users, profiles, dto } = createFixture([])
+		await expect(repository.createRegisteredUser(dto)).rejects.toBeInstanceOf(ServiceUnavailableException)
+		expect(users.save).not.toHaveBeenCalled()
+		expect(profiles.insert).not.toHaveBeenCalled()
+	})
+
+	it('注册成功响应由 Service 组装', async () => {
+		const { repository, dto } = createFixture([{ id: 88, code: 'user' }])
+		const service = new UserService({} as UserQueryRpst, {} as UserDeleteRpst, repository)
+		await expect(service.register(dto)).resolves.toEqual({ code: 200, data: true, msg: '注册成功' })
+	})
+
 	it('允许关联任意有效 ID 的非超管角色，全部写入使用事务 manager', async () => {
 		const { repository, users, profiles, dto, transaction } = createFixture()
 		await expect(repository.createUser(dto)).resolves.toMatchObject({ id: 42 })

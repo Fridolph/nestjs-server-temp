@@ -41,6 +41,18 @@ $ pnpm install
 
 资料更新的具体规则与测试见 [Profile 学习说明](src/user/profile/README.md)。
 
+## 自助注册（当前学习阶段）
+
+`POST /api/v1/auth/register` 只接收用户名、密码和可选资料字段，不接收 `roleIds` 等角色字段。
+
+```json
+{ "username": "student", "password": "Study123", "nickname": "学习者" }
+```
+
+后端在创建事务中按 `roles.code = 'user'` 查询普通用户角色，再创建用户、角色关联和资料；不依赖角色 ID 为 3。默认角色缺失时中止注册。管理员创建入口 `POST /users` 仍使用单独的 `createUserSchema` 接收 `roleIds`，不能分配超管。
+
+目前密码仍沿用练习项目的原值存储，signin 尚未校验密码和签发 JWT；后续认证阶段需补齐密码哈希与校验、JWT 和访问守卫。
+
 ## Compile and run the project
 
 ```bash

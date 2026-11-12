@@ -1,8 +1,9 @@
 import type { UpdateProfileDto } from '../dto/update-profile.dto.ts'
-import { Body, Controller, Get, Param, ParseIntPipe, Patch } from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.ts'
 import { updateProfileSchema } from '../dto/update-profile.dto.ts'
 import { ProfileService } from './profile.service.ts'
+import { AuthGuard } from '@nestjs/passport'
 
 @Controller()
 export class ProfileController {
@@ -15,6 +16,7 @@ export class ProfileController {
 	 * @returns 包含用户基本信息与单个资料对象的响应。
 	 */
 	@Get('users/:userId/profile')
+	@UseGuards(AuthGuard('jwt'))
 	getUserProfile(@Param('userId', ParseIntPipe) userId: number) {
 		return this.profileService.getUserProfile(userId)
 	}

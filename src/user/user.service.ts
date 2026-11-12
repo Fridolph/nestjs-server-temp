@@ -35,15 +35,23 @@ export class UserService {
 		const { data, total } = await this.queryRpst.findWithFilters({
 			id: query.id === undefined ? undefined : parseIntegerQuery(query.id, 'id', 1),
 			username: query.username?.trim(),
-			gender: query.gender === undefined ? undefined : parseIntegerQuery(query.gender, 'gender', 0, 1),
-			profileId: query.profileId === undefined ? undefined : parseIntegerQuery(query.profileId, 'profileId', 1),
+			gender:
+				query.gender === undefined ? undefined : parseIntegerQuery(query.gender, 'gender', 0, 1),
+			profileId:
+				query.profileId === undefined
+					? undefined
+					: parseIntegerQuery(query.profileId, 'profileId', 1),
 			role: query.role === undefined ? undefined : parseIntegerQuery(query.role, 'role', 1),
 			size,
 			page,
 			offset,
 		})
 
-		return { code: 200, pageMeta: { total, page, size }, data }
+		return {
+			code: 200,
+			data,
+			pageMeta: { total, page, size },
+		}
 	}
 
 	/**
@@ -53,13 +61,20 @@ export class UserService {
 	 * @returns 用户资料与角色 code。
 	 * @throws NotFoundException - 没有匹配到启用用户。
 	 */
-	findById(query: { id: number }) {
-		return this.queryRpst.findById(query)
+	async findById(query: { id: number }) {
+		const data = await this.queryRpst.findById(query)
+		return { code: 200, data }
+	}
+
+	/** 内部认证查询，包含密码；交给 AuthService，不组装公开接口响应。 */
+	findOneByUsername(username: string) {
+		return this.queryRpst.findOneByUsername(username)
 	}
 
 	/** 查询一个或多个用户的角色关联明细。 */
-	findRolesByUserIds(ids: number | number[]) {
-		return this.queryRpst.findRolesByUserIds(ids)
+	async findRolesByUserIds(ids: number | number[]) {
+		const data = await this.queryRpst.findRolesByUserIds(ids)
+		return { code: 200, data }
 	}
 
 	/**
@@ -75,6 +90,12 @@ export class UserService {
 			data: true,
 			msg: `用户 [${newUser.id}__${newUser.username}] 创建成功`,
 		}
+	}
+
+	/** 自助注册，由后端分配普通用户角色并初始化资料。 */
+	async register(dto: Omit<CreateUserDto, 'roleIds'>) {
+		const newUser = await this.createRpst.createRegisteredUser(dto)
+		return { code: 200, data: true, msg: `[${newUser.id}: ${newUser.username}] 注册成功` }
 	}
 
 	/**

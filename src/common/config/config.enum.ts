@@ -1,0 +1,21 @@
+const DB_TYPE = 'DB_TYPE'
+const DB_HOST = 'DB_HOST'
+const DB_PORT = 'DB_PORT'
+const DB_USERNAME = 'DB_USERNAME'
+const DB_PASSWORD = 'DB_PASSWORD'
+const DB_DATABASE = 'DB_DATABASE'
+
+export enum ConfigEnum {
+	TYPE = DB_TYPE,
+	HOST = DB_HOST,
+	PORT = DB_PORT,
+	USERNAME = DB_USERNAME,
+	PASSWORD = DB_PASSWORD,
+	DATABASE = DB_DATABASE,
+	SECRET = 'SECRET',
+}
+
+export enum LogEnum {
+	LOG_ON = 'LOG_ON',
+	LOG_LEVEL = 'LOG_LEVEL',
+}

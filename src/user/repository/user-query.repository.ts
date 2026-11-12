@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import type { UserListCriteria, UserRoleRow, UserRow } from '../user.types.ts'
+import type { UserAuthRow, UserListCriteria, UserRoleRow, UserRow } from '../user.types.ts'
 import type { Repository } from 'typeorm'
 import User from '../user.entity.ts'
 import { parseIntegerQuery } from '../../common/utils/number.ts'
@@ -97,7 +97,10 @@ export default class UserQueryRpst {
 
 		const rows = await this.repository.query<UserRow[]>(dataSql, [...parameters, size, offset])
 
-		const [count] = await this.repository.query<{ totalCount: number | string }[]>(countSql, parameters)
+		const [count] = await this.repository.query<{ totalCount: number | string }[]>(
+			countSql,
+			parameters
+		)
 
 		// 查询当前页用户的角色
 		const userIds = rows.map(row => row.userId)
@@ -121,6 +124,24 @@ export default class UserQueryRpst {
 			data,
 			total: Number(count.totalCount),
 		}
+	}
+
+	/**
+	 * 按用户名精确查询登录凭据，与不包含密码的列表查询分开。
+	 *
+	 * 用户名通过占位符绑定，不使用 LIKE；大小写规则由数据库列的排序规则决定。
+	 * 不关联资料或角色，也不执行 COUNT；密码只在服务内部用于比对。
+	 * @returns 凭据行；未匹配时返回 null，由 AuthService 统一处理认证失败。
+	 */
+	async findOneByUsername(username: string): Promise<UserAuthRow | null> {
+		const rows = await this.repository.query<UserAuthRow[]>(
+			`SELECT u.id, u.username, u.password, u.isActive
+			 FROM \`user\` AS u
+			 WHERE u.username = ?
+			 LIMIT 1`,
+			[username]
+		)
+		return rows[0] ?? null
 	}
 
 	/**

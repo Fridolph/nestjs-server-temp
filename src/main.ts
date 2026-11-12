@@ -1,5 +1,5 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core'
-import type { LoggerService } from '@nestjs/common'
+import { ValidationPipe, type LoggerService } from '@nestjs/common'
 import { AppModule } from './app.module.js'
 import { ConfigService } from '@nestjs/config'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
@@ -19,6 +19,14 @@ async function bootstrap() {
 	const prefix = configService.get<string>('PREFIX') ?? 'api'
 	const version = configService.get<string>('VERSION') ?? 'v1'
 	app.setGlobalPrefix(`${prefix}/${version}`)
+
+	// 全局管道
+	// app.useGlobalPipes(
+	// new ValidationPipe({
+	// 去除在类上不存在的字段
+	// whitelist: true,
+	// })
+	// )
 
 	app.enableCors({
 		origin: ['http://localhost:3050', 'http://127.0.0.1:3050', '*'],

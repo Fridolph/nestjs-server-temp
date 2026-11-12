@@ -3,6 +3,7 @@ import {
 	ConflictException,
 	ForbiddenException,
 	Injectable,
+	ServiceUnavailableException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, type Repository } from 'typeorm'
@@ -34,11 +35,30 @@ export default class UserCreateRpst {
 	 * @throws ForbiddenException - 所选角色包含超管。
 	 */
 	async createUser(dto: CreateUserDto) {
+		return this.persistUser(dto, dto.roleIds)
+	}
+
+	/**
+	 * 自助注册只分配 code=user 的角色，不读取客户端角色字段。
+	 * 角色查询和用户、资料写入使用同一事务；默认角色缺失则中止，不创建无角色用户。
+	 * @throws ServiceUnavailableException - 普通用户角色尚未配置。
+	 */
+	async createRegisteredUser(dto: Omit<CreateUserDto, 'roleIds'>) {
+		return this.persistUser(dto)
+	}
+
+	/** 复用创建事务；管理员创建传角色 ID，注册分支始终按稳定 code 查普通用户。 */
+	private async persistUser(dto: Omit<CreateUserDto, 'roleIds'>, roleIds?: number[]) {
 		const newUser = await this.userRepository.manager.transaction(async manager => {
 			const users = manager.getRepository(User)
 			const profiles = manager.getRepository(UserProfile)
-			const roles = await manager.getRepository(Roles).findBy({ id: In(dto.roleIds) })
-			if (roles.length !== dto.roleIds.length) {
+			const roles = await manager.getRepository(Roles).findBy(
+				roleIds === undefined ? { code: 'user' } : { id: In(roleIds) }
+			)
+			if (roleIds === undefined && roles.length !== 1) {
+				throw new ServiceUnavailableException('注册服务暂不可用：普通用户角色未配置')
+			}
+			if (roleIds !== undefined && roles.length !== roleIds.length) {
 				throw new BadRequestException('所选角色不存在')
 			}
 			if (roles.some(role => role.code === 'super_admin')) {
