@@ -9,16 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, type Repository } from 'typeorm'
 import User from '../user.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
-import Roles from '../../roles/roles.entity.ts'
+import Roles from '../roles/roles.entity.ts'
 import type { CreateUserDto } from '../dto/create-user.dto.ts'
 import argon2 from 'argon2'
 
 /** 封装创建用户、角色关联及默认资料所需的同一数据库事务。 */
 @Injectable()
 export default class UserCreateRpst {
-	constructor(
-		@InjectRepository(User) private readonly userRepository: Repository<User>
-	) {}
+	constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {}
 
 	/**
 	 * 原子地创建用户、关联已有角色并初始化资料。

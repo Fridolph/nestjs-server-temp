@@ -1,19 +1,28 @@
 import 'reflect-metadata'
-import { BadRequestException, ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common'
+import {
+	BadRequestException,
+	ForbiddenException,
+	NotFoundException,
+	ServiceUnavailableException,
+} from '@nestjs/common'
 import { describe, expect, it, vi } from 'vitest'
 import type { Repository } from 'typeorm'
 import User from '../user.entity.ts'
-import Roles from '../../roles/roles.entity.ts'
+import Roles from '../roles/roles.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
 import UserQueryRpst from '../repository/user-query.repository.ts'
 import UserCreateRpst from '../repository/user-create.repository.ts'
 import UserDeleteRpst from '../repository/user-delete.repository.ts'
+import UserUpdateRpst from '../repository/user-update.repository.ts'
 import { UserService } from '../user.service.ts'
 import { createUserSchema } from '../dto/create-user.dto.ts'
 import argon2 from 'argon2'
 
 function queryFixture() {
-	const query = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([{ totalCount: '0' }])
+	const query = vi
+		.fn()
+		.mockResolvedValueOnce([])
+		.mockResolvedValueOnce([{ totalCount: '0' }])
 	return { query, repository: new UserQueryRpst({ query } as unknown as Repository<User>) }
 }
 
@@ -32,8 +41,12 @@ describe('用户查询分页边界', () => {
 
 	it('非法分页不能被默认值掩盖', async () => {
 		const { query, repository } = queryFixture()
-		await expect(repository.findWithFilters({ size: 0 })).rejects.toBeInstanceOf(BadRequestException)
-		await expect(repository.findWithFilters({ offset: -1 })).rejects.toBeInstanceOf(BadRequestException)
+		await expect(repository.findWithFilters({ size: 0 })).rejects.toBeInstanceOf(
+			BadRequestException
+		)
+		await expect(repository.findWithFilters({ offset: -1 })).rejects.toBeInstanceOf(
+			BadRequestException
+		)
 		expect(query).not.toHaveBeenCalled()
 	})
 
@@ -45,15 +58,21 @@ describe('用户查询分页边界', () => {
 
 	it('缺少 ID 时不执行查询', async () => {
 		const { query, repository } = queryFixture()
-		await expect(repository.findById({} as { id: number })).rejects.toBeInstanceOf(BadRequestException)
+		await expect(repository.findById({} as { id: number })).rejects.toBeInstanceOf(
+			BadRequestException
+		)
 		expect(query).not.toHaveBeenCalled()
 	})
 
 	it('批量角色查询不增加列表行数，gender=0 也保留', async () => {
-		const query = vi.fn()
+		const query = vi
+			.fn()
 			.mockResolvedValueOnce([{ userId: 18, username: 'alice' }])
 			.mockResolvedValueOnce([{ totalCount: '1' }])
-			.mockResolvedValueOnce([{ userId: 18, roleCode: 'admin' }, { userId: 18, roleCode: 'premium' }])
+			.mockResolvedValueOnce([
+				{ userId: 18, roleCode: 'admin' },
+				{ userId: 18, roleCode: 'premium' },
+			])
 		const repository = new UserQueryRpst({ query } as unknown as Repository<User>)
 		const result = await repository.findWithFilters({ gender: 0 })
 		expect(result).toMatchObject({ total: 1, data: [{ userId: 18, roles: ['admin', 'premium'] }] })
@@ -90,19 +109,28 @@ describe('创建用户的角色与事务边界', () => {
 		const { repository, users, dto, findRoles } = createFixture([{ id: 88, code: 'user' }])
 		await repository.createRegisteredUser(dto)
 		expect(findRoles).toHaveBeenCalledWith({ code: 'user' })
-		expect(users.create).toHaveBeenCalledWith(expect.objectContaining({ roles: [{ id: 88, code: 'user' }] }))
+		expect(users.create).toHaveBeenCalledWith(
+			expect.objectContaining({ roles: [{ id: 88, code: 'user' }] })
+		)
 	})
 
 	it('默认角色缺失时注册中止，不写入用户或资料', async () => {
 		const { repository, users, profiles, dto } = createFixture([])
-		await expect(repository.createRegisteredUser(dto)).rejects.toBeInstanceOf(ServiceUnavailableException)
+		await expect(repository.createRegisteredUser(dto)).rejects.toBeInstanceOf(
+			ServiceUnavailableException
+		)
 		expect(users.save).not.toHaveBeenCalled()
 		expect(profiles.insert).not.toHaveBeenCalled()
 	})
 
 	it('注册仅向 AuthService 提供身份字段，不泄露密码哈希或实体', async () => {
 		const { repository, dto } = createFixture([{ id: 88, code: 'user' }])
-		const service = new UserService({} as UserQueryRpst, {} as UserDeleteRpst, repository)
+		const service = new UserService(
+			{} as UserQueryRpst,
+			{} as UserDeleteRpst,
+			repository,
+			{} as UserUpdateRpst
+		)
 		const response = await service.register(dto)
 		expect(response.data).toEqual({ userId: 42, username: dto.username, roleIds: [88] })
 		expect(JSON.stringify(response)).not.toMatch(/password|argon2|secret123/)
@@ -111,8 +139,12 @@ describe('创建用户的角色与事务边界', () => {
 	it('允许关联任意有效 ID 的非超管角色，全部写入使用事务 manager', async () => {
 		const { repository, users, profiles, dto, transaction } = createFixture()
 		await expect(repository.createUser(dto)).resolves.toMatchObject({ id: 42 })
-		expect(users.create).toHaveBeenCalledWith(expect.objectContaining({ roles: [{ id: 20, code: 'admin' }] }))
-		expect(profiles.insert).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, nickname: 'alice' }))
+		expect(users.create).toHaveBeenCalledWith(
+			expect.objectContaining({ roles: [{ id: 20, code: 'admin' }] })
+		)
+		expect(profiles.insert).toHaveBeenCalledWith(
+			expect.objectContaining({ userId: 42, nickname: 'alice' })
+		)
 		expect(transaction).toHaveBeenCalledOnce()
 		const saved = users.save.mock.calls[0][0]
 		expect(saved.password).not.toBe(dto.password)
@@ -120,8 +152,13 @@ describe('创建用户的角色与事务边界', () => {
 	})
 
 	it('超管 ID 即使不是 1 也拒绝，混合角色不能部分成功', async () => {
-		const { repository, users, profiles, dto } = createFixture([{ id: 20, code: 'admin' }, { id: 21, code: 'super_admin' }])
-		await expect(repository.createUser({ ...dto, roleIds: [20, 21] })).rejects.toBeInstanceOf(ForbiddenException)
+		const { repository, users, profiles, dto } = createFixture([
+			{ id: 20, code: 'admin' },
+			{ id: 21, code: 'super_admin' },
+		])
+		await expect(repository.createUser({ ...dto, roleIds: [20, 21] })).rejects.toBeInstanceOf(
+			ForbiddenException
+		)
 		expect(users.save).not.toHaveBeenCalled()
 		expect(profiles.insert).not.toHaveBeenCalled()
 	})
@@ -143,10 +180,24 @@ describe('删除结果与 Service 响应', () => {
 	it('仓库返回影响行数，Service 负责组装响应', async () => {
 		const users = { delete: vi.fn().mockResolvedValue({ affected: 1 }) }
 		const profiles = { delete: vi.fn().mockResolvedValue({ affected: 1 }) }
-		const manager = { getRepository: (entity: unknown) => entity === User ? users : profiles }
-		const repository = new UserDeleteRpst({ manager: { transaction: (callback: (transactionManager: typeof manager) => Promise<number>) => callback(manager) } } as unknown as Repository<User>)
+		const manager = { getRepository: (entity: unknown) => (entity === User ? users : profiles) }
+		const repository = new UserDeleteRpst({
+			manager: {
+				transaction: (callback: (transactionManager: typeof manager) => Promise<number>) =>
+					callback(manager),
+			},
+		} as unknown as Repository<User>)
 		await expect(repository.removeByUserId(18)).resolves.toBe(1)
-		const service = new UserService({} as UserQueryRpst, repository, {} as UserCreateRpst)
-		await expect(service.remove(18)).resolves.toEqual({ code: 200, data: true, msg: '用户删除成功' })
+		const service = new UserService(
+			{} as UserQueryRpst,
+			repository,
+			{} as UserCreateRpst,
+			{} as UserUpdateRpst
+		)
+		await expect(service.remove(18)).resolves.toEqual({
+			code: 200,
+			data: true,
+			msg: '用户删除成功',
+		})
 	})
 })

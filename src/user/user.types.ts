@@ -52,6 +52,8 @@ export interface UpdateUserDto {
 export interface UserRow {
 	userId: number
 	username: string
+	phone: string | null
+	email: string | null
 	nickname: string | null
 	profileId: number | null
 	gender: number | null

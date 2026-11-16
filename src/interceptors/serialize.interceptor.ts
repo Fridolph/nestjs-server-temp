@@ -8,7 +8,7 @@ export class SerializeInterceptor implements NestInterceptor {
 		console.log('全局拦截器执行之前拿 req.headers\n', req.headers)
 		return next.handle().pipe(
 			map(data => {
-				console.log('全局拦截器执行之后的 data\n', data)
+				console.log('全局拦截器执行之后的 response\n', data)
 				return data
 			})
 		)

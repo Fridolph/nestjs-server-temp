@@ -4,6 +4,7 @@ import { AppModule } from './app.module.js'
 import { ConfigService } from '@nestjs/config'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { AllExceptionFilter } from './common/filters/all-exception.filter.ts'
+import { SerializeInterceptor } from './interceptors/serialize.interceptor.ts'
 // import { SerializeInterceptor } from './interceptors/serialize.interceptor.ts'
 
 async function bootstrap() {
@@ -30,7 +31,7 @@ async function bootstrap() {
 	// )
 
 	// 全局拦截器
-	// app.useGlobalInterceptors(new SerializeInterceptor())
+	app.useGlobalInterceptors(new SerializeInterceptor())
 
 	app.enableCors({
 		origin: ['http://localhost:3050', 'http://127.0.0.1:3050', '*'],

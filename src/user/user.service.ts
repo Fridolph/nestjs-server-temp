@@ -5,13 +5,16 @@ import { parseIntegerQuery } from '../common/utils/number.ts'
 import UserDeleteRpst from './repository/user-delete.repository.ts'
 import UserQueryRpst from './repository/user-query.repository.ts'
 import UserCreateRpst from './repository/user-create.repository.ts'
+import UserUpdateRpst from './repository/user-update.repository.ts'
+import type { UpdateUserInputDto } from './dto/update-user.dto.ts'
 
 @Injectable()
 export class UserService {
 	constructor(
 		private readonly queryRpst: UserQueryRpst,
 		private readonly deleteRpst: UserDeleteRpst,
-		private readonly createRpst: UserCreateRpst
+		private readonly createRpst: UserCreateRpst,
+		private readonly updateRpst: UserUpdateRpst
 	) {}
 
 	/**
@@ -104,6 +107,12 @@ export class UserService {
 			},
 			msg: `[${newUser.id}: ${newUser.username}] 注册成功`,
 		}
+	}
+
+	/** 原子更新管理后台的用户资料、联系方式与角色。 */
+	async updateUser(id: number, actorId: number, dto: UpdateUserInputDto) {
+		await this.updateRpst.updateUser(id, actorId, dto)
+		return { code: 200, data: true, msg: '用户已更新' }
 	}
 
 	/**

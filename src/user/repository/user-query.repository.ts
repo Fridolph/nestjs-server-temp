@@ -80,6 +80,8 @@ export default class UserQueryRpst {
     SELECT
       u.id AS userId,
       u.username,
+      u.phone,
+      u.email,
       p.nickname,
       p.userId AS profileId,
       p.gender,

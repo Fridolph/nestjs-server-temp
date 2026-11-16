@@ -11,7 +11,7 @@ import {
 	AfterRemove,
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
-import Roles from '../roles/roles.entity.ts'
+import Roles from './roles/roles.entity.ts'
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
 
@@ -29,13 +29,13 @@ export default class User {
 	@IsString()
 	@IsOptional()
 	@IsOptional()
-	phone?: string
+	phone?: string | null
 
 	@Column({ type: 'varchar', length: 120, nullable: true })
 	@IsString()
 	@IsOptional()
 	@IsOptional()
-	email?: string
+	email?: string | null
 
 	@Column({ type: 'varchar', length: 255, nullable: true })
 	@IsString()

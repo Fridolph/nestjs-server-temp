@@ -1,9 +1,12 @@
 import type { QueryUserDto } from './user.types.ts'
 import type { CreateUserDto } from './dto/create-user.dto.ts'
-import { Body, Controller, Get, Post, Query, Delete, Param, ParseIntPipe } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, Delete, Param, ParseIntPipe, Patch, UseGuards, Req } from '@nestjs/common'
 import { UserService } from './user.service.ts'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 import { createUserSchema } from './dto/create-user.dto.ts'
+import { updateUserSchema, type UpdateUserInputDto } from './dto/update-user.dto.ts'
+import { JwtGuard } from '../guard/jwt.guard.ts'
+import { AdminGuard } from '../guard/admin.guard.ts'
 
 @Controller('users')
 export class UserController {
@@ -29,6 +32,17 @@ export class UserController {
 	@Post()
 	addUser(@Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserDto) {
 		return this.userService.create(dto)
+	}
+
+	/** 管理员更新用户，角色变更由仓库额外校验超管身份。 */
+	@Patch(':id')
+	@UseGuards(JwtGuard, AdminGuard)
+	updateUser(
+		@Param('id', ParseIntPipe) id: number,
+		@Req() request: { user: { userId: number } },
+		@Body(new ZodValidationPipe(updateUserSchema)) dto: UpdateUserInputDto
+	) {
+		return this.userService.updateUser(id, request.user.userId, dto)
 	}
 
 	/**

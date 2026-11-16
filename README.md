@@ -43,7 +43,7 @@ $ pnpm install
 
 ## 自助注册（当前学习阶段）
 
-`POST /api/v1/auth/register` 只接收用户名、密码，不接收 `roleIds` 等角色字段。
+`POST /api/v1/auth/register` 接收用户名、密码和可选昵称，不接收 `roleIds` 等角色字段。
 
 ```json
 { "username": "student", "password": "Study123" }

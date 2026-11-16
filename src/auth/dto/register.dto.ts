@@ -1,18 +1,11 @@
 import { z } from 'zod'
+import { createUserSchema } from '../../user/dto/create-user.dto.ts'
 
-export const registerInputSchema = z.strictObject({
-	username: z.string().trim().min(4, '至少输入 4 个字符的用户名').max(20, '用户名最多 20 个字符'),
-	password: z
-		.string()
-		.min(6, '密码至少 6 位')
-		.max(32, '密码最多 32 个字符')
-		.refine(
-			value =>
-				[/[A-Za-z]/, /\d/, /[^A-Za-z0-9\s]/].filter(pattern => pattern.test(value)).length >= 2,
-			{
-				message: '密码不能只用数字或字母，请组合至少两类字符',
-			}
-		),
+/** 自助注册只接收用户名、密码和可选昵称，角色由服务端固定分配。 */
+export const registerInputSchema = createUserSchema.pick({
+	username: true,
+	password: true,
+	nickname: true,
 })
 export type RegisterInputDto = z.output<typeof registerInputSchema>
 
