@@ -92,10 +92,18 @@ export class UserService {
 		}
 	}
 
-	/** 自助注册，由后端分配普通用户角色并初始化资料。 */
+	/** 创建普通用户，事务完成后仅返回身份字段，供 AuthService 自动登录。 */
 	async register(dto: Omit<CreateUserDto, 'roleIds'>) {
 		const newUser = await this.createRpst.createRegisteredUser(dto)
-		return { code: 200, data: true, msg: `[${newUser.id}: ${newUser.username}] 注册成功` }
+		return {
+			code: 200,
+			data: {
+				userId: newUser.id,
+				username: newUser.username,
+				roleIds: newUser.roles.map(role => role.id),
+			},
+			msg: `[${newUser.id}: ${newUser.username}] 注册成功`,
+		}
 	}
 
 	/**

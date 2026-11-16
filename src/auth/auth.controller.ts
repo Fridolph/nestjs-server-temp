@@ -1,8 +1,8 @@
-import type { RegisterDto } from './dto/register.dto.ts'
+import { registerInputSchema, type RegisterInputDto } from './dto/register.dto.ts'
 import { Body, Controller, Post } from '@nestjs/common'
 import { AuthService } from './auth.service.ts'
-import type { SigninDto } from './dto/signin.dto.ts'
-import { RegisterPipe, SigninPipe } from './auth.pipe.ts'
+import { signinSchema, type SigninDto } from './dto/signin.dto.ts'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 
 @Controller('auth')
 export class AuthController {
@@ -10,15 +10,15 @@ export class AuthController {
 
 	/** 校验注册参数后创建用户及其默认资料。 */
 	@Post('/register')
-	register(@Body(RegisterPipe) dto: RegisterDto) {
-		return this.authService.register(dto)
+	async register(@Body(new ZodValidationPipe(registerInputSchema)) dto: RegisterInputDto) {
+		return await this.authService.register(dto)
 	}
 
 	/** 校验登录参数，返回访问令牌。 */
 	@Post('/signin')
-	signin(@Body(SigninPipe) dto: SigninDto) {
+	async signin(@Body(new ZodValidationPipe(signinSchema)) dto: SigninDto) {
 		const { username, password } = dto
-		return this.authService.signin(username, password)
+		return await this.authService.signin(username, password)
 	}
 
 	@Post('/logout')

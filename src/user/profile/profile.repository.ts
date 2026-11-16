@@ -35,6 +35,7 @@ export default class ProfileRpst {
 		const dataSql = `
       SELECT
         p.userId,
+        ur.roleIds AS roleId,
         u.username,
         u.phone,
         u.email,
@@ -44,7 +45,9 @@ export default class ProfileRpst {
         p.address
       FROM profile AS p
         INNER JOIN \`user\` AS u ON p.userId = u.id
+        LEFT JOIN \`users_roles\` AS ur ON p.userId = ur.userId
       WHERE u.id = ? AND u.isActive = 1
+      ORDER BY ur.roleIds
     `
 		const profiles = await this.profileRepst.query<ProfileRow[]>(dataSql, [userId])
 
@@ -73,7 +76,9 @@ export default class ProfileRpst {
 				},
 			},
 			relations: {
-				user: true,
+				user: {
+					roles: true,
+				},
 			},
 			select: {
 				userId: true,
@@ -85,6 +90,9 @@ export default class ProfileRpst {
 					username: true,
 					phone: true,
 					email: true,
+					roles: {
+						id: true,
+					},
 				},
 			},
 		})
@@ -100,6 +108,7 @@ export default class ProfileRpst {
 			gender: profile.gender,
 			photo: profile.photo,
 			address: profile.address,
+			roleIds: profile.user.roles.map(role => role.id),
 		}
 	}
 

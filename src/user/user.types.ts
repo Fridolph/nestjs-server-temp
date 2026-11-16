@@ -3,12 +3,20 @@ import type { CreateUserDto } from './dto/create-user.dto.ts'
 
 export type { CreateUserDto, UpdateProfileDto }
 
+/** 可用于签发 Token 的身份信息，不包含密码或完整实体关联。 */
+export interface UserIdentity {
+	userId: number
+	username: string
+	roleIds: number[]
+}
+
 /** 仅供内部认证读取；不得直接返回接口或写入 JWT、日志。 */
 export interface UserAuthRow {
 	id: number
 	username: string
 	password: string | null
 	isActive: number | boolean
+	roleIds: number[]
 }
 
 /** 用户列表的 HTTP 查询参数。 */

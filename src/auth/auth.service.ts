@@ -1,7 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { UserService } from '../user/user.service.ts'
-import type { RegisterDto } from './dto/register.dto.ts'
+import type { RegisterInputDto } from './dto/register.dto.ts'
 import { JwtService } from '@nestjs/jwt'
+import argon2 from 'argon2'
+import { registerOutputSchema } from './dto/register.dto.ts'
+import type { UserIdentity } from '../user/user.types.ts'
 
 @Injectable()
 export class AuthService {
@@ -13,27 +16,38 @@ export class AuthService {
 	/** 校验启用用户的凭据并签发 JWT，不返回密码或完整用户记录。 */
 	async signin(username: string, password: string) {
 		const user = await this.userService.findOneByUsername(username)
-		// 统一提示，避免泄露账号是否存在；未设置密码的旧账号也不能登录。
-		// 当前练习库仍存原值密码；改为哈希存储后，应替换为对应的 verify/compare。
-		if (!user || !user.isActive || !user.password || user.password !== password) {
+		// 统一提示，不区分未知、停用或密码错误；旧明文密码不再支持登录。
+		if (!user?.isActive || !user.password?.startsWith('$argon2')) {
 			throw new UnauthorizedException('用户名或密码错误')
 		}
-		// JWT payload 可被解码读取，只放用户标识，不放密码。
-		const accessToken = await this.jwtService.signAsync({
-			username: user.username,
-			sub: user.id,
-		})
-		return {
-			code: 200,
-			data: { userId: user.id, username: user.username, accessToken, tokenType: 'Bearer' },
-			msg: '登录成功',
+		if (!(await argon2.verify(user.password, password))) {
+			throw new UnauthorizedException('用户名或密码错误')
 		}
+		return this.issueAuthResponse(
+			{ userId: user.id, username: user.username, roleIds: user.roleIds },
+			'登录成功'
+		)
 	}
 
 	logout() {}
 
-	/** 自助注册固定分配普通用户角色。 */
-	register(dto: RegisterDto) {
-		return this.userService.register(dto)
+	/** 自助注册固定分配普通用户角色，创建事务提交后自动登录。 */
+	async register(dto: RegisterInputDto) {
+		const { data: identity } = await this.userService.register(dto)
+		return this.issueAuthResponse(identity, '注册成功')
+	}
+
+	/** 登录和注册共用签发及响应白名单；仅接收已验证或已创建的用户身份。 */
+	private async issueAuthResponse(identity: UserIdentity, msg: string) {
+		const { userId, username, roleIds } = identity
+		const accessToken = await this.jwtService.signAsync({ userId, username, roleIds })
+		const data = registerOutputSchema.parse({
+			userId,
+			username,
+			roleIds,
+			accessToken,
+			tokenType: 'Bearer',
+		})
+		return { code: 200, data, msg }
 	}
 }

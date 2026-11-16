@@ -1,9 +1,10 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core'
-import { ValidationPipe, type LoggerService } from '@nestjs/common'
+import { type LoggerService } from '@nestjs/common'
 import { AppModule } from './app.module.js'
 import { ConfigService } from '@nestjs/config'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { AllExceptionFilter } from './common/filters/all-exception.filter.ts'
+// import { SerializeInterceptor } from './interceptors/serialize.interceptor.ts'
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule, {
@@ -22,11 +23,14 @@ async function bootstrap() {
 
 	// 全局管道
 	// app.useGlobalPipes(
-	// new ValidationPipe({
-	// 去除在类上不存在的字段
-	// whitelist: true,
-	// })
+	// 	new ValidationPipe({
+	// 		// 去除在类上不存在的字段
+	// 		whitelist: true,
+	// 	})
 	// )
+
+	// 全局拦截器
+	// app.useGlobalInterceptors(new SerializeInterceptor())
 
 	app.enableCors({
 		origin: ['http://localhost:3050', 'http://127.0.0.1:3050', '*'],

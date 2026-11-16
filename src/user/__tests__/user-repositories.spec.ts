@@ -10,6 +10,7 @@ import UserCreateRpst from '../repository/user-create.repository.ts'
 import UserDeleteRpst from '../repository/user-delete.repository.ts'
 import { UserService } from '../user.service.ts'
 import { createUserSchema } from '../dto/create-user.dto.ts'
+import argon2 from 'argon2'
 
 function queryFixture() {
 	const query = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([{ totalCount: '0' }])
@@ -99,10 +100,12 @@ describe('创建用户的角色与事务边界', () => {
 		expect(profiles.insert).not.toHaveBeenCalled()
 	})
 
-	it('注册成功响应由 Service 组装', async () => {
+	it('注册仅向 AuthService 提供身份字段，不泄露密码哈希或实体', async () => {
 		const { repository, dto } = createFixture([{ id: 88, code: 'user' }])
 		const service = new UserService({} as UserQueryRpst, {} as UserDeleteRpst, repository)
-		await expect(service.register(dto)).resolves.toEqual({ code: 200, data: true, msg: '注册成功' })
+		const response = await service.register(dto)
+		expect(response.data).toEqual({ userId: 42, username: dto.username, roleIds: [88] })
+		expect(JSON.stringify(response)).not.toMatch(/password|argon2|secret123/)
 	})
 
 	it('允许关联任意有效 ID 的非超管角色，全部写入使用事务 manager', async () => {
@@ -111,6 +114,9 @@ describe('创建用户的角色与事务边界', () => {
 		expect(users.create).toHaveBeenCalledWith(expect.objectContaining({ roles: [{ id: 20, code: 'admin' }] }))
 		expect(profiles.insert).toHaveBeenCalledWith(expect.objectContaining({ userId: 42, nickname: 'alice' }))
 		expect(transaction).toHaveBeenCalledOnce()
+		const saved = users.save.mock.calls[0][0]
+		expect(saved.password).not.toBe(dto.password)
+		await expect(argon2.verify(saved.password, dto.password)).resolves.toBe(true)
 	})
 
 	it('超管 ID 即使不是 1 也拒绝，混合角色不能部分成功', async () => {

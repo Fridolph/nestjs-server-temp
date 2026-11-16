@@ -43,15 +43,17 @@ $ pnpm install
 
 ## 自助注册（当前学习阶段）
 
-`POST /api/v1/auth/register` 只接收用户名、密码和可选资料字段，不接收 `roleIds` 等角色字段。
+`POST /api/v1/auth/register` 只接收用户名、密码，不接收 `roleIds` 等角色字段。
 
 ```json
-{ "username": "student", "password": "Study123", "nickname": "学习者" }
+{ "username": "student", "password": "Study123" }
 ```
 
 后端在创建事务中按 `roles.code = 'user'` 查询普通用户角色，再创建用户、角色关联和资料；不依赖角色 ID 为 3。默认角色缺失时中止注册。管理员创建入口 `POST /users` 仍使用单独的 `createUserSchema` 接收 `roleIds`，不能分配超管。
 
-目前密码仍沿用练习项目的原值存储，signin 尚未校验密码和签发 JWT；后续认证阶段需补齐密码哈希与校验、JWT 和访问守卫。
+密码在写入事务前完成 Argon2 哈希，登录使用 `argon2.verify` 校验。Repository 只处理持久化，不依赖 JwtService；UserService 注册后只返回用户 ID、用户名和角色 ID，由 AuthService 在事务提交后自动签发 Token。
+
+登录与注册共用 AuthService 的私有 `issueAuthResponse`，统一签发 JWT 并使用输出 Schema 白名单组装响应，不返回密码哈希或完整实体。Token 失败不回滚已提交的注册，用户可以随后登录；不在事务中调用 JWT。注册成功自动登录是一项产品选择，本项目采用此方式。
 
 ## Compile and run the project
 

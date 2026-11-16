@@ -37,7 +37,7 @@ export default class User {
 	@IsOptional()
 	email?: string
 
-	@Column({ type: 'varchar', length: 32, nullable: true })
+	@Column({ type: 'varchar', length: 255, nullable: true })
 	@IsString()
 	@IsOptional()
 	@IsNotEmpty()
@@ -56,7 +56,17 @@ export default class User {
 	logs: Relation<Logs[]>
 
 	@ManyToMany(() => Roles, roles => roles.users, { cascade: ['insert'] })
-	@JoinTable({ name: 'users_roles' })
+	@JoinTable({
+		name: 'users_roles',
+		joinColumn: {
+			name: 'userId',
+			referencedColumnName: 'id',
+		},
+		inverseJoinColumn: {
+			name: 'roleIds',
+			referencedColumnName: 'id',
+		},
+	})
 	roles: Relation<Roles[]>
 
 	@AfterInsert()

@@ -32,6 +32,7 @@
     "@nestjs/passport": "^12.0.1",
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/typeorm": "^12.0.2",
+    "argon2": "^0.45.2",
     "class-validator": "^0.15.1",
     "mysql2": "^3.24.6",
     "nest-winston": "^2.0.0",

@@ -11,11 +11,14 @@ import User from '../user.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
 import Roles from '../../roles/roles.entity.ts'
 import type { CreateUserDto } from '../dto/create-user.dto.ts'
+import argon2 from 'argon2'
 
 /** 封装创建用户、角色关联及默认资料所需的同一数据库事务。 */
 @Injectable()
 export default class UserCreateRpst {
-	constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {}
+	constructor(
+		@InjectRepository(User) private readonly userRepository: Repository<User>
+	) {}
 
 	/**
 	 * 原子地创建用户、关联已有角色并初始化资料。
@@ -25,7 +28,7 @@ export default class UserCreateRpst {
 	 * users.save 根据 User.roles 的多对多映射写入 users_roles，不是创建新角色。
 	 * 昵称未提供时使用用户名；用户名和昵称的并发唯一性依赖数据库唯一约束。
 	 * 按稳定的 role.code 拒绝 super_admin，不依赖数据库中角色 ID 的排列。
-	 * 密码按传入值保存；正式认证功能仍需在写入前完成密码哈希。
+	 * 密码在事务前完成 Argon2 哈希；仓库不签发 JWT，也不组装 HTTP 响应。
 	 * 任一步骤抛错都会回滚，包括用户已保存后资料插入失败的情况。
 	 *
 	 * @param dto - 已校验的用户信息、非空且不重复的角色 ID 和可选资料。
@@ -44,17 +47,21 @@ export default class UserCreateRpst {
 	 * @throws ServiceUnavailableException - 普通用户角色尚未配置。
 	 */
 	async createRegisteredUser(dto: Omit<CreateUserDto, 'roleIds'>) {
-		return this.persistUser(dto)
+		return await this.persistUser(dto)
 	}
 
 	/** 复用创建事务；管理员创建传角色 ID，注册分支始终按稳定 code 查普通用户。 */
 	private async persistUser(dto: Omit<CreateUserDto, 'roleIds'>, roleIds?: number[]) {
+		// 事务开始前完成密码哈希
+		const pwd = await argon2.hash(dto.password)
+
 		const newUser = await this.userRepository.manager.transaction(async manager => {
 			const users = manager.getRepository(User)
 			const profiles = manager.getRepository(UserProfile)
-			const roles = await manager.getRepository(Roles).findBy(
-				roleIds === undefined ? { code: 'user' } : { id: In(roleIds) }
-			)
+			const roles = await manager
+				.getRepository(Roles)
+				.findBy(roleIds === undefined ? { code: 'user' } : { id: In(roleIds) })
+
 			if (roleIds === undefined && roles.length !== 1) {
 				throw new ServiceUnavailableException('注册服务暂不可用：普通用户角色未配置')
 			}
@@ -64,6 +71,7 @@ export default class UserCreateRpst {
 			if (roles.some(role => role.code === 'super_admin')) {
 				throw new ForbiddenException('创建用户时不能分配超管角色')
 			}
+
 			const isExist = await users.findOne({
 				where: { username: dto.username },
 			})
@@ -71,7 +79,7 @@ export default class UserCreateRpst {
 
 			const user = users.create({
 				username: dto.username,
-				password: dto.password,
+				password: pwd,
 				roles,
 			})
 			await users.save(user)
@@ -82,6 +90,7 @@ export default class UserCreateRpst {
 				photo: dto.photo ?? null,
 				address: dto.address ?? null,
 			})
+			// save 后才有自增 ID；事务提交后由 AuthService 决定是否签发 Token。
 			return user
 		})
 
