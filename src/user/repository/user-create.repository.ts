@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, type Repository } from 'typeorm'
 import User from '../user.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
-import Roles from '../roles/roles.entity.ts'
+import Roles from '../../roles/roles.entity.ts'
 import type { CreateUserDto } from '../dto/create-user.dto.ts'
 import argon2 from 'argon2'
 
@@ -25,7 +25,7 @@ export default class UserCreateRpst {
 	 * DTO 应已通过 Zod 校验；所有读写均使用事务回调提供的 manager。
 	 * users.save 根据 User.roles 的多对多映射写入 users_roles，不是创建新角色。
 	 * 昵称未提供时使用用户名；用户名和昵称的并发唯一性依赖数据库唯一约束。
-	 * 按稳定的 role.code 拒绝 super_admin，不依赖数据库中角色 ID 的排列。
+	 * 按稳定的 roleCode（数据库 code 列）拒绝 super_admin，不依赖角色 ID 的排列。
 	 * 密码在事务前完成 Argon2 哈希；仓库不签发 JWT，也不组装 HTTP 响应。
 	 * 任一步骤抛错都会回滚，包括用户已保存后资料插入失败的情况。
 	 *
@@ -58,7 +58,7 @@ export default class UserCreateRpst {
 			const profiles = manager.getRepository(UserProfile)
 			const roles = await manager
 				.getRepository(Roles)
-				.findBy(roleIds === undefined ? { code: 'user' } : { id: In(roleIds) })
+				.findBy(roleIds === undefined ? { roleCode: 'user' } : { id: In(roleIds) })
 
 			if (roleIds === undefined && roles.length !== 1) {
 				throw new ServiceUnavailableException('注册服务暂不可用：普通用户角色未配置')
@@ -66,7 +66,7 @@ export default class UserCreateRpst {
 			if (roleIds !== undefined && roles.length !== roleIds.length) {
 				throw new BadRequestException('所选角色不存在')
 			}
-			if (roles.some(role => role.code === 'super_admin')) {
+			if (roles.some(role => role.roleCode === 'super_admin')) {
 				throw new ForbiddenException('创建用户时不能分配超管角色')
 			}
 

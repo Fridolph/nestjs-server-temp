@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import type { Repository } from 'typeorm'
 import User from '../user.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
-import Roles from '../roles/roles.entity.ts'
+import Roles from '../../roles/roles.entity.ts'
 import type { UpdateUserInputDto } from '../dto/update-user.dto.ts'
 
 /** 将用户联系方式、角色和资料修改放在同一事务中。 */
@@ -19,13 +19,13 @@ export default class UserUpdateRpst {
 
 			if (dto.roleCode !== undefined) {
 				const actor = await users.findOne({ where: { id: actorId }, relations: { roles: true } })
-				if (!actor?.roles.some(role => role.code === 'super_admin')) {
+				if (!actor?.roles.some(role => role.roleCode === 'super_admin')) {
 					throw new ForbiddenException('只有超管可以修改用户角色')
 				}
-				if (target.roles.some(role => role.code === 'super_admin')) {
+				if (target.roles.some(role => role.roleCode === 'super_admin')) {
 					throw new ForbiddenException('超管角色不可修改')
 				}
-				const role = await manager.getRepository(Roles).findOneBy({ code: dto.roleCode })
+				const role = await manager.getRepository(Roles).findOneBy({ roleCode: dto.roleCode })
 				if (!role) throw new NotFoundException('所选角色不存在')
 				target.roles = [role]
 			}

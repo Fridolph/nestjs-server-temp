@@ -16,13 +16,16 @@ const description = z
 	.trim()
 	.max(255, '角色描述最多 255 个字符')
 
+/** 角色展示字段，授权编码与数据库 code 列对应。 */
 export const roleSchema = z.strictObject({
 	roleId: z.number().int().positive(),
 	roleName,
 	description,
 	roleCode,
 })
+/** 创建时拒绝未声明字段；super_admin 保留编码由仓库单独保护。 */
 export const createRoleSchema = z.strictObject({ roleName, description, roleCode })
+/** PATCH 只接受名称和描述，拒绝空更新、null 和授权编码修改。 */
 export const updateRoleSchema = z
 	.strictObject({
 		roleName: roleName.optional(),
@@ -32,6 +35,7 @@ export const updateRoleSchema = z
 		message: '至少提供一个可更新字段',
 	})
 
+export type RoleType = z.output<typeof roleSchema>
 export type QueryRoleDto = z.output<typeof roleSchema>
 export type CreateRoleInput = z.input<typeof createRoleSchema>
 export type CreateRoleDto = z.output<typeof createRoleSchema>

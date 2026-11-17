@@ -1,12 +1,24 @@
 import type { QueryUserDto } from './user.types.ts'
 import type { CreateUserDto } from './dto/create-user.dto.ts'
-import { Body, Controller, Get, Post, Query, Delete, Param, ParseIntPipe, Patch, UseGuards, Req } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Get,
+	Post,
+	Query,
+	Delete,
+	Param,
+	ParseIntPipe,
+	Patch,
+	UseGuards,
+	Req,
+} from '@nestjs/common'
 import { UserService } from './user.service.ts'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 import { createUserSchema } from './dto/create-user.dto.ts'
 import { updateUserSchema, type UpdateUserInputDto } from './dto/update-user.dto.ts'
-import { JwtGuard } from '../guard/jwt.guard.ts'
-import { AdminGuard } from '../guard/admin.guard.ts'
+import { JwtGuard } from '../common/guard/jwt.guard.ts'
+import { AdminGuard } from '../common/guard/admin.guard.ts'
 
 @Controller('users')
 export class UserController {
@@ -30,6 +42,7 @@ export class UserController {
 	 * @returns 创建成功响应。
 	 */
 	@Post()
+	@UseGuards(JwtGuard, AdminGuard)
 	addUser(@Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserDto) {
 		return this.userService.create(dto)
 	}

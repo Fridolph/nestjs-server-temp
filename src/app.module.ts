@@ -10,7 +10,9 @@ import { LogsController } from './common/logs/logs.controller.ts'
 import { LogsModule } from './common/logs/logs.module.ts'
 import { connectionParams } from '../ormconfig.ts'
 import { AuthModule } from './auth/auth.module.js'
-import { RolesModule } from './user/roles/roles.module.ts'
+import { RolesModule } from './roles/roles.module.js'
+import { AdminGuard } from './common/guard/admin.guard.ts'
+import User from './user/user.entity.ts'
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule()
 
@@ -44,6 +46,8 @@ const envFilePath = [`.env.${nodeEnv}`, '.env']
 		}),
 
 		TypeOrmModule.forRoot(connectionParams),
+		// LogsController 在本模块使用 AdminGuard，守卫依赖的用户仓库也必须在本模块可见。
+		TypeOrmModule.forFeature([User]),
 
 		LogsModule,
 
@@ -54,6 +58,6 @@ const envFilePath = [`.env.${nodeEnv}`, '.env']
 		RolesModule,
 	],
 	controllers: [AppController, LogsController],
-	providers: [AppService],
+	providers: [AppService, AdminGuard],
 })
 export class AppModule {}

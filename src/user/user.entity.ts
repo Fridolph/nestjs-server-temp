@@ -11,7 +11,7 @@ import {
 	AfterRemove,
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
-import Roles from './roles/roles.entity.ts'
+import Roles from '../roles/roles.entity.ts'
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
 

@@ -41,6 +41,15 @@ $ pnpm install
 
 资料更新的具体规则与测试见 [Profile 学习说明](src/user/profile/README.md)。
 
+## 角色模块与管理权限
+
+- `src/roles` 是唯一角色模块，替代原来的 `src/user/roles`；数据库仍使用 `roles.name/code`，实体属性为 `roleName/roleCode`。
+- `/roles` 提供列表、详情、创建、更新、删除；保留 `/users/roles` 作为兼容路径，共用同一个 Controller。
+- 角色读取需要登录，创建、更新、删除需要当前启用用户具有 `super_admin` 或 `admin` 编码。`POST /users` 也执行相同管理权限检查；自助注册仍使用公开的 `/auth/register`。
+- JWT Guard 验证身份后，AdminGuard 查询当前数据库角色，不用固定角色 ID 或 Token 内的旧角色信息授权。
+- `super_admin` 不能通过通用角色接口创建、编辑或删除；`roleCode` 创建后不可修改，仍被用户关联的角色不能删除。
+- 请求使用 Zod Pipe 校验，Service 组装响应，Repository 保留数据操作、404/409 及系统角色保护。
+
 ## 自助注册（当前学习阶段）
 
 `POST /api/v1/auth/register` 接收用户名、密码和可选昵称，不接收 `roleIds` 等角色字段。

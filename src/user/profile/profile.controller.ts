@@ -12,10 +12,10 @@ import {
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.ts'
 import { updateProfileSchema } from '../dto/update-profile.dto.ts'
 import { ProfileService } from './profile.service.ts'
-import { AdminGuard } from '../../guard/admin.guard.ts'
+import { AdminGuard } from '../../common/guard/admin.guard.ts'
 import { AuthGuard } from '@nestjs/passport'
-import { SelfOrSuperGuard } from '../../guard/self-or-super.guard.ts'
-import { JwtGuard } from '../../guard/jwt.guard.ts'
+import { SelfOrSuperGuard } from '../../common/guard/self-or-super.guard.ts'
+import { JwtGuard } from '../../common/guard/jwt.guard.ts'
 
 @Controller()
 export class ProfileController {

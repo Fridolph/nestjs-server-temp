@@ -15,27 +15,22 @@ type RoleRow = { roleId: number; roleName: string; description: string; roleCode
  * 角色持久化操作，不组装 HTTP 响应。
  *
  * @remarks
- * 正式列表查询使用 QueryBuilder；文件末尾保留等价的原生 SQL 学习实现。
+ * 查询使用参数化原生 SQL；TypeORM 写入时使用实体属性 roleName / roleCode。
  * roleCode 是授权规则依赖的稳定标识，更新路径永远不允许修改它。
  */
 @Injectable()
-export class RoleRpst {
+export class RolesRpst {
 	constructor(@InjectRepository(Roles) private readonly repository: Repository<Roles>) {}
 
 	/**
 	 * 查询全部角色，并映射成接口使用的字段名。
-	 * @remarks getRawMany 返回投影行而非完整 Roles Entity；显式选择字段，不加载用户关联。
+	 * @remarks SQL 使用数据库列名 name / code，投影成 roleName / roleCode，不加载用户关联。
 	 * @returns 按角色主键升序排列的角色列表。
 	 */
 	async findAllRoles(): Promise<RoleRow[]> {
-		return this.repository
-			.createQueryBuilder('role')
-			.select('role.id', 'roleId')
-			.addSelect('role.name', 'roleName')
-			.addSelect('role.description', 'description')
-			.addSelect('role.code', 'roleCode')
-			.orderBy('role.id', 'ASC')
-			.getRawMany<RoleRow>()
+		return this.repository.query<RoleRow[]>(
+			`SELECT id AS roleId, description, code AS roleCode, name AS roleName FROM roles ORDER BY id`
+		)
 	}
 
 	/**
@@ -56,12 +51,12 @@ export class RoleRpst {
 		try {
 			const saved = await this.repository.save(
 				this.repository.create({
-					name: dto.roleName,
+					roleName: dto.roleName,
 					description: dto.description,
-					code: dto.roleCode,
+					roleCode: dto.roleCode,
 				})
 			)
-			return this.findRoleById(saved.id)
+			return await this.findRoleById(saved.id)
 		} catch (error) {
 			if (this.isDuplicateKey(error)) throw new ConflictException('角色编码已存在')
 			throw error
@@ -74,7 +69,7 @@ export class RoleRpst {
 	 * @remarks
 	 * 先读取目标，以区分“角色不存在”和“重复提交原值”。
 	 * update 的 affected 为 0 时再次确认目标是否仍存在，避免把原值重交误报为 404。
-	 * 更新对象只包含 name 和 description，不会修改授权编码。
+	 * 更新对象只包含实体属性 roleName 和 description，不会修改授权编码。
 	 *
 	 * @param roleId - 目标角色主键。
 	 * @param dto - 名称和描述的部分更新数据。
@@ -84,9 +79,9 @@ export class RoleRpst {
 	async updateRoleById(roleId: number, dto: UpdateRoleDto): Promise<void> {
 		const role = await this.repository.findOneBy({ id: roleId })
 		if (!role) throw new NotFoundException('角色不存在')
-		if (role.code === 'super_admin') throw new ForbiddenException('超管角色不能编辑')
+		if (role.roleCode === 'super_admin') throw new ForbiddenException('超管角色不能编辑')
 		const result = await this.repository.update(roleId, {
-			...(dto.roleName === undefined ? {} : { name: dto.roleName }),
+			...(dto.roleName === undefined ? {} : { roleName: dto.roleName }),
 			...(dto.description === undefined ? {} : { description: dto.description }),
 		})
 		if (!result.affected && !(await this.repository.existsBy({ id: roleId })))
@@ -111,7 +106,7 @@ export class RoleRpst {
 				.getRepository(Roles)
 				.findOne({ where: { id: roleId }, relations: { users: true } })
 			if (!role) throw new NotFoundException('角色不存在')
-			if (role.code === 'super_admin') throw new ForbiddenException('超管角色不能删除')
+			if (role.roleCode === 'super_admin') throw new ForbiddenException('超管角色不能删除')
 			if (role.users.length > 0) throw new ConflictException('该角色仍被用户使用，请先调整用户角色')
 			await manager.getRepository(Roles).remove(role)
 		})
@@ -123,15 +118,8 @@ export class RoleRpst {
 	 * @returns 角色的展示数据。
 	 * @throws NotFoundException - 查询不到目标角色。
 	 */
-	private async findRoleById(roleId: number): Promise<RoleRow> {
-		const row = await this.repository
-			.createQueryBuilder('role')
-			.select('role.id', 'roleId')
-			.addSelect('role.name', 'roleName')
-			.addSelect('role.description', 'description')
-			.addSelect('role.code', 'roleCode')
-			.where('role.id = :roleId', { roleId })
-			.getRawOne<RoleRow>()
+	async findRoleById(roleId: number): Promise<RoleRow> {
+		const row = await this.findRoleByIdByRawSqlLearning(roleId)
 		if (!row) throw new NotFoundException('角色不存在')
 		return row
 	}
@@ -159,39 +147,39 @@ export class RoleRpst {
 	 */
 	async findAllRolesByRawSqlLearning(): Promise<RoleRow[]> {
 		const sql = `
-			SELECT
-				id AS roleId,
-				name AS roleName,
-				description,
-				code AS roleCode
-			FROM roles
-			ORDER BY id ASC
-		`
+      SELECT
+        id AS roleId,
+        name AS roleName,
+        description,
+        code AS roleCode
+      FROM roles
+      ORDER BY id ASC
+    `
 		return this.repository.query<RoleRow[]>(sql, [])
 	}
 
 	/**
-	 * 原生 SQL 的单角色查询对照版，当前业务调用链不使用。
+	 * 原生 SQL 的单角色查询，供 findRoleById 复用。
 	 *
 	 * @remarks
 	 * 问号是 MySQL 驱动的值占位符，第二个参数数组按 SQL 中的问号顺序绑定。
 	 * 不要把 roleId 拼进 SQL 字符串；动态表名或列名也不能通过值占位符绑定。
-	 * 这与 findRoleById 的 QueryBuilder 命名参数是两种写法，结果语义相同。
+	 * SQL 列名仍是 name / code，不受实体属性改名影响。
 	 *
 	 * @param roleId - 角色主键。
 	 * @returns 角色投影；不存在时返回 null。
 	 */
 	async findRoleByIdByRawSqlLearning(roleId: number): Promise<RoleRow | null> {
 		const sql = `
-			SELECT
-				id AS roleId,
-				name AS roleName,
-				description,
-				code AS roleCode
-			FROM roles
-			WHERE id = ?
-			LIMIT 1
-		`
+      SELECT
+        id AS roleId,
+        name AS roleName,
+        description,
+        code AS roleCode
+      FROM roles
+      WHERE id = ?
+      LIMIT 1
+    `
 		const rows = await this.repository.query<RoleRow[]>(sql, [roleId])
 		return rows[0] ?? null
 	}

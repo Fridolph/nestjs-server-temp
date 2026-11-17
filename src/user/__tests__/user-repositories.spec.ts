@@ -8,7 +8,7 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 import type { Repository } from 'typeorm'
 import User from '../user.entity.ts'
-import Roles from '../roles/roles.entity.ts'
+import Roles from '../../roles/roles.entity.ts'
 import UserProfile from '../profile/profile.entity.ts'
 import UserQueryRpst from '../repository/user-query.repository.ts'
 import UserCreateRpst from '../repository/user-create.repository.ts'
@@ -82,7 +82,7 @@ describe('用户查询分页边界', () => {
 	})
 })
 
-function createFixture(roles = [{ id: 20, code: 'admin' }]) {
+function createFixture(roles = [{ id: 20, roleCode: 'admin' }]) {
 	const users = {
 		findOne: vi.fn().mockResolvedValue(null),
 		create: vi.fn(value => ({ id: 42, ...value })),
@@ -106,11 +106,11 @@ function createFixture(roles = [{ id: 20, code: 'admin' }]) {
 
 describe('创建用户的角色与事务边界', () => {
 	it('注册按 code 查普通用户，角色 ID 变化也不受影响，忽略内部调用误带的角色 ID', async () => {
-		const { repository, users, dto, findRoles } = createFixture([{ id: 88, code: 'user' }])
+		const { repository, users, dto, findRoles } = createFixture([{ id: 88, roleCode: 'user' }])
 		await repository.createRegisteredUser(dto)
-		expect(findRoles).toHaveBeenCalledWith({ code: 'user' })
+		expect(findRoles).toHaveBeenCalledWith({ roleCode: 'user' })
 		expect(users.create).toHaveBeenCalledWith(
-			expect.objectContaining({ roles: [{ id: 88, code: 'user' }] })
+			expect.objectContaining({ roles: [{ id: 88, roleCode: 'user' }] })
 		)
 	})
 
@@ -124,7 +124,7 @@ describe('创建用户的角色与事务边界', () => {
 	})
 
 	it('注册仅向 AuthService 提供身份字段，不泄露密码哈希或实体', async () => {
-		const { repository, dto } = createFixture([{ id: 88, code: 'user' }])
+		const { repository, dto } = createFixture([{ id: 88, roleCode: 'user' }])
 		const service = new UserService(
 			{} as UserQueryRpst,
 			{} as UserDeleteRpst,
@@ -140,7 +140,7 @@ describe('创建用户的角色与事务边界', () => {
 		const { repository, users, profiles, dto, transaction } = createFixture()
 		await expect(repository.createUser(dto)).resolves.toMatchObject({ id: 42 })
 		expect(users.create).toHaveBeenCalledWith(
-			expect.objectContaining({ roles: [{ id: 20, code: 'admin' }] })
+			expect.objectContaining({ roles: [{ id: 20, roleCode: 'admin' }] })
 		)
 		expect(profiles.insert).toHaveBeenCalledWith(
 			expect.objectContaining({ userId: 42, nickname: 'alice' })
@@ -153,8 +153,8 @@ describe('创建用户的角色与事务边界', () => {
 
 	it('超管 ID 即使不是 1 也拒绝，混合角色不能部分成功', async () => {
 		const { repository, users, profiles, dto } = createFixture([
-			{ id: 20, code: 'admin' },
-			{ id: 21, code: 'super_admin' },
+			{ id: 20, roleCode: 'admin' },
+			{ id: 21, roleCode: 'super_admin' },
 		])
 		await expect(repository.createUser({ ...dto, roleIds: [20, 21] })).rejects.toBeInstanceOf(
 			ForbiddenException
