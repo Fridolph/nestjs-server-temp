@@ -11,7 +11,8 @@ import { LogsModule } from './common/logs/logs.module.ts'
 import { connectionParams } from '../ormconfig.ts'
 import { AuthModule } from './auth/auth.module.js'
 import { RolesModule } from './roles/roles.module.js'
-import { AdminGuard } from './common/guard/admin.guard.ts'
+import { AdminGuard } from './common/guards/admin.guard.ts'
+import { MenusModule } from './menus/menus.module.js'
 import User from './user/user.entity.ts'
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule()
@@ -56,6 +57,8 @@ const envFilePath = [`.env.${nodeEnv}`, '.env']
 		AuthModule,
 
 		RolesModule,
+
+		MenusModule,
 	],
 	controllers: [AppController, LogsController],
 	providers: [AppService, AdminGuard],

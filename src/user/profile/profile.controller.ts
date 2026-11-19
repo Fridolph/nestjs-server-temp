@@ -1,21 +1,10 @@
 import type { UpdateProfileDto } from '../dto/update-profile.dto.ts'
-import {
-	Body,
-	Controller,
-	Get,
-	Headers,
-	Param,
-	ParseIntPipe,
-	Patch,
-	UseGuards,
-} from '@nestjs/common'
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common'
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.ts'
 import { updateProfileSchema } from '../dto/update-profile.dto.ts'
 import { ProfileService } from './profile.service.ts'
-import { AdminGuard } from '../../common/guard/admin.guard.ts'
+import { AdminGuard } from '../../common/guards/admin.guard.ts'
 import { AuthGuard } from '@nestjs/passport'
-import { SelfOrSuperGuard } from '../../common/guard/self-or-super.guard.ts'
-import { JwtGuard } from '../../common/guard/jwt.guard.ts'
 
 @Controller()
 export class ProfileController {
@@ -43,7 +32,6 @@ export class ProfileController {
 	 * @returns 更新成功响应。
 	 */
 	@Patch('users/:id/profile')
-	@UseGuards(JwtGuard, SelfOrSuperGuard)
 	updateUserProfile(
 		@Param('id', ParseIntPipe) id: number,
 		@Body(new ZodValidationPipe(updateProfileSchema)) updateProfileDto: UpdateProfileDto

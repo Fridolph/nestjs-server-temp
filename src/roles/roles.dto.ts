@@ -35,6 +35,13 @@ export const updateRoleSchema = z
 		message: '至少提供一个可更新字段',
 	})
 
+/**
+ * 用于权限判断的角色编码。
+ */
+export const roleCodeSchema = z.enum(['super_admin', 'admin', 'user', 'premium', 'guest'])
+
+export type RoleCode = z.output<typeof roleCodeSchema>
+
 export type RoleType = z.output<typeof roleSchema>
 export type QueryRoleDto = z.output<typeof roleSchema>
 export type CreateRoleInput = z.input<typeof createRoleSchema>

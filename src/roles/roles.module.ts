@@ -5,10 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import Roles from './roles.entity.ts'
 import { RolesRpst } from './roles.repository.ts'
 import User from '../user/user.entity.ts'
-import { AdminGuard } from '../common/guard/admin.guard.ts'
+import { AdminGuard } from '../common/guards/admin.guard.ts'
+import { UserModule } from '../user/user.module.ts'
 
 @Module({
-	imports: [TypeOrmModule.forFeature([Roles, User])],
+	imports: [TypeOrmModule.forFeature([Roles, User]), UserModule],
 	controllers: [RolesController],
 	providers: [RolesService, RolesRpst, AdminGuard],
 	exports: [RolesService],

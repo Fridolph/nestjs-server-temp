@@ -32,7 +32,7 @@ function buildConnectionOptions() {
 		database: config[ConfigEnum.DATABASE],
 		entities: entitiesDir,
 		// 同步本地的schema与数据库 -> 初始化时使用
-		synchronize: true,
+		synchronize: false,
 		logging: process.env.NODE_ENV === 'development',
 	} as TypeOrmModuleOptions
 }

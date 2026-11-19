@@ -16,8 +16,8 @@ import {
 	type UpdateRoleDto,
 	type CreateRoleDto,
 } from './roles.dto.ts'
-import { JwtGuard } from '../common/guard/jwt.guard.ts'
-import { AdminGuard } from '../common/guard/admin.guard.ts'
+import { JwtGuard } from '../common/guards/jwt.guard.ts'
+import { AdminGuard } from '../common/guards/admin.guard.ts'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 
 // 迁移期间保留旧路径，已有前端请求与新路径共用同一套权限和校验。

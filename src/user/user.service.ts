@@ -1,16 +1,20 @@
 import type { QueryUserDto } from './user.types.ts'
 import type { CreateUserDto } from './dto/create-user.dto.ts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import type { UpdateUserInputDto } from './dto/update-user.dto.ts'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { parseIntegerQuery } from '../common/utils/number.ts'
+import { Repository } from 'typeorm'
+import { InjectRepository } from '@nestjs/typeorm'
 import UserDeleteRpst from './repository/user-delete.repository.ts'
 import UserQueryRpst from './repository/user-query.repository.ts'
 import UserCreateRpst from './repository/user-create.repository.ts'
 import UserUpdateRpst from './repository/user-update.repository.ts'
-import type { UpdateUserInputDto } from './dto/update-user.dto.ts'
+import User from './user.entity.ts'
 
 @Injectable()
 export class UserService {
 	constructor(
+		@InjectRepository(User) public userRepository: Repository<User>,
 		private readonly queryRpst: UserQueryRpst,
 		private readonly deleteRpst: UserDeleteRpst,
 		private readonly createRpst: UserCreateRpst,
@@ -125,5 +129,22 @@ export class UserService {
 	async remove(userId: number) {
 		await this.deleteRpst.removeByUserId(userId)
 		return { code: 200, data: true, msg: '用户删除成功' }
+	}
+
+	async findForAdmin(userId: number) {
+		const user = await this.userRepository.findOne({
+			where: { id: userId },
+			relations: { roles: true },
+			select: {
+				id: true,
+				isActive: true,
+				roles: {
+					id: true,
+					roleCode: true,
+				},
+			},
+		})
+		if (!user) throw new NotFoundException('未查询到用户信息')
+		return user
 	}
 }

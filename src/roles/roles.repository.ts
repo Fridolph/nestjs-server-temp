@@ -7,9 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'
 import type { Repository } from 'typeorm'
 import Roles from './roles.entity.ts'
-import type { CreateRoleDto, UpdateRoleDto } from './roles.dto.ts'
-
-type RoleRow = { roleId: number; roleName: string; description: string; roleCode: string }
+import type { CreateRoleDto, RoleType, UpdateRoleDto } from './roles.dto.ts'
 
 /**
  * 角色持久化操作，不组装 HTTP 响应。
@@ -27,8 +25,8 @@ export class RolesRpst {
 	 * @remarks SQL 使用数据库列名 name / code，投影成 roleName / roleCode，不加载用户关联。
 	 * @returns 按角色主键升序排列的角色列表。
 	 */
-	async findAllRoles(): Promise<RoleRow[]> {
-		return this.repository.query<RoleRow[]>(
+	async findAllRoles(): Promise<RoleType[]> {
+		return this.repository.query<RoleType[]>(
 			`SELECT id AS roleId, description, code AS roleCode, name AS roleName FROM roles ORDER BY id`
 		)
 	}
@@ -46,7 +44,7 @@ export class RolesRpst {
 	 * @throws ConflictException - 角色编码已存在。
 	 * @throws ForbiddenException - 使用系统保留编码。
 	 */
-	async createRole(dto: CreateRoleDto): Promise<RoleRow> {
+	async createRole(dto: CreateRoleDto): Promise<RoleType> {
 		if (dto.roleCode === 'super_admin') throw new ForbiddenException('超管角色不能通过接口创建')
 		try {
 			const saved = await this.repository.save(
@@ -118,7 +116,7 @@ export class RolesRpst {
 	 * @returns 角色的展示数据。
 	 * @throws NotFoundException - 查询不到目标角色。
 	 */
-	async findRoleById(roleId: number): Promise<RoleRow> {
+	async findRoleById(roleId: number): Promise<RoleType> {
 		const row = await this.findRoleByIdByRawSqlLearning(roleId)
 		if (!row) throw new NotFoundException('角色不存在')
 		return row
@@ -145,7 +143,7 @@ export class RolesRpst {
 	 *
 	 * @returns 按角色主键升序排列的角色列表。
 	 */
-	async findAllRolesByRawSqlLearning(): Promise<RoleRow[]> {
+	async findAllRolesByRawSqlLearning(): Promise<RoleType[]> {
 		const sql = `
       SELECT
         id AS roleId,
@@ -155,7 +153,7 @@ export class RolesRpst {
       FROM roles
       ORDER BY id ASC
     `
-		return this.repository.query<RoleRow[]>(sql, [])
+		return this.repository.query<RoleType[]>(sql, [])
 	}
 
 	/**
@@ -169,7 +167,7 @@ export class RolesRpst {
 	 * @param roleId - 角色主键。
 	 * @returns 角色投影；不存在时返回 null。
 	 */
-	async findRoleByIdByRawSqlLearning(roleId: number): Promise<RoleRow | null> {
+	async findRoleByIdByRawSqlLearning(roleId: number): Promise<RoleType | null> {
 		const sql = `
       SELECT
         id AS roleId,
@@ -180,7 +178,7 @@ export class RolesRpst {
       WHERE id = ?
       LIMIT 1
     `
-		const rows = await this.repository.query<RoleRow[]>(sql, [roleId])
+		const rows = await this.repository.query<RoleType[]>(sql, [roleId])
 		return rows[0] ?? null
 	}
 }

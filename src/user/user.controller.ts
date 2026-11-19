@@ -17,8 +17,8 @@ import { UserService } from './user.service.ts'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 import { createUserSchema } from './dto/create-user.dto.ts'
 import { updateUserSchema, type UpdateUserInputDto } from './dto/update-user.dto.ts'
-import { JwtGuard } from '../common/guard/jwt.guard.ts'
-import { AdminGuard } from '../common/guard/admin.guard.ts'
+import { JwtGuard } from '../common/guards/jwt.guard.ts'
+import { AdminGuard } from '../common/guards/admin.guard.ts'
 
 @Controller('users')
 export class UserController {

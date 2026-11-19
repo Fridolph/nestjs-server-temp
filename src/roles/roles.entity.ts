@@ -1,6 +1,7 @@
 import type { Relation } from 'typeorm'
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm'
 import User from '../user/user.entity.ts'
+import { Menus } from '../menus/menus.entity.ts'
 
 @Entity()
 export default class Roles {
@@ -29,4 +30,7 @@ export default class Roles {
 	/** 被分配该角色的用户；删除前必须确保关联为空。 */
 	@ManyToMany(() => User, user => user.roles)
 	users: Relation<User[]>
+
+	@ManyToMany(() => Menus, menus => menus.role)
+	menus: Relation<Menus[]>
 }

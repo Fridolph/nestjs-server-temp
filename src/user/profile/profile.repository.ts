@@ -20,9 +20,7 @@ type ProfileRow = {
 /** 封装资料查询和部分更新，保留 TypeORM 与原生 SQL 两种学习实现。 */
 @Injectable()
 export default class ProfileRpst {
-	constructor(
-		@InjectRepository(UserProfile) private readonly profileRepst: Repository<UserProfile>
-	) {}
+	constructor(@InjectRepository(UserProfile) public profileRepst: Repository<UserProfile>) {}
 
 	/**
 	 * 使用参数化 INNER JOIN 查询启用用户及其资料。
