@@ -64,12 +64,12 @@ export class UserService {
 	/**
 	 * 查询指定 ID 的启用用户及其角色。
 	 *
-	 * @param query - 必传的目标用户 ID。
+	 * @param userId - 必传的目标用户 ID。
 	 * @returns 用户资料与角色 code。
 	 * @throws NotFoundException - 没有匹配到启用用户。
 	 */
-	async findById(query: { id: number }) {
-		const data = await this.queryRpst.findById(query)
+	async findById(userId: number) {
+		const data = await this.queryRpst.findById(userId)
 		return { code: 200, data }
 	}
 

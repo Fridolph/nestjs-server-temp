@@ -72,6 +72,7 @@ export const menuSchema = z.strictObject({
 	parentId,
 	menuName,
 	type: menuType,
+	acl: z.string(),
 	path,
 	icon,
 	order,
@@ -102,7 +103,7 @@ export const createMenuSchema = z
 		visible: visible.default(true),
 		enabled: enabled.default(true),
 	})
-	.refine(data => data.type !== MenuType.PAGE || data.path !== null, {
+	.refine(data => data.type !== MenuType.Page || data.path !== null, {
 		path: ['path'],
 		message: '页面菜单必须提供 path',
 	})

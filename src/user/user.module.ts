@@ -1,4 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common'
+import { forwardRef, Global, Module } from '@nestjs/common'
 import { UserController } from './user.controller.ts'
 import { UserService } from './user.service.ts'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -12,6 +12,7 @@ import UserCreateRpst from './repository/user-create.repository.ts'
 import UserUpdateRpst from './repository/user-update.repository.ts'
 import { AdminGuard } from '../common/guards/admin.guard.ts'
 
+@Global()
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([User, Logs, Roles]),

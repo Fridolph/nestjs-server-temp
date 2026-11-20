@@ -15,11 +15,12 @@ import {
 import type { Relation } from 'typeorm'
 
 import Roles from '../roles/roles.entity.ts'
+import { CaslAction } from '../common/constants/casl.ts'
 
 export enum MenuType {
-	DIRECTORY = 'directory', // 可包含子项的目录
-	GROUP = 'group', // 仅用于分组展示
-	PAGE = 'page', // 可访问的页面
+	Directory = 'directory', // 可包含子项的目录
+	Group = 'group', // 仅用于分组展示
+	Page = 'page', // 可访问的页面
 }
 
 @Entity('menus')
@@ -85,6 +86,9 @@ export class Menus {
 	 */
 	@Column({ type: 'varchar', length: 50, nullable: true })
 	icon: string | null
+
+	@Column({ type: 'varchar', length: 50 })
+	acl: string
 
 	/**
 	 * 同级菜单排序，数字越小越靠前。

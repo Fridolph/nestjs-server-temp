@@ -1,4 +1,4 @@
-import type { CreateMenuDto, UpdateMenuBodyDto } from './menus.dto.ts'
+import type { CreateMenuDto, MenuDto, UpdateMenuBodyDto } from './menus.dto.ts'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { MenusRpst } from './menus.repository.ts'
 
@@ -15,6 +15,23 @@ export class MenusService {
 		const sql = `SELECT * FROM menus ORDER BY \`order\`, id`
 		const data = await this.menusRpst.repository.query(sql)
 		return { code: 200, data }
+	}
+
+	/**
+	 * 查询用户id 对应的权限菜单列表
+	 * @param userId number
+	 */
+	async findWithRoleId(userId: number) {
+		const sql = `
+    SELECT DISTINCT m.*
+    FROM users_roles AS ur
+    INNER JOIN roles_menus AS rm
+      ON rm.rolesId = ur.roleIds
+    INNER JOIN menus AS m
+      ON m.id = rm.menusId
+    WHERE ur.userId = ?
+    ORDER BY m.\`order\` ASC, m.id ASC;`
+		return await this.menusRpst.repository.query<MenuDto[]>(sql, [userId])
 	}
 
 	async update(id: number, dto: UpdateMenuBodyDto) {

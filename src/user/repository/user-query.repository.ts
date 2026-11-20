@@ -136,7 +136,9 @@ export default class UserQueryRpst {
 	 * @returns 凭据行；未匹配时返回 null，由 AuthService 统一处理认证失败。
 	 */
 	async findOneByUsername(username: string): Promise<UserAuthRow | null> {
-		const rows = await this.repository.query<(Omit<UserAuthRow, 'roleIds'> & { roleIds: number | null })[]>(
+		const rows = await this.repository.query<
+			(Omit<UserAuthRow, 'roleIds'> & { roleIds: number | null })[]
+		>(
 			`
         SELECT
           u.id,
@@ -175,8 +177,8 @@ export default class UserQueryRpst {
 	 * @returns 用户资料及角色 code 数组。
 	 * @throws NotFoundException - 查询执行成功但未匹配到启用用户。
 	 */
-	async findById(query: { id: number }) {
-		const id = parseIntegerQuery(query?.id, 'id', 1)
+	async findById(userId: number) {
+		const id = parseIntegerQuery(userId, 'id', 1)
 		const { data } = await this.findWithFilters({
 			id,
 			size: 1,

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Global, Module } from '@nestjs/common'
 import { AuthService } from './auth.service.js'
 import { AuthController } from './auth.controller.js'
 import { UserModule } from '../user/user.module.ts'
@@ -7,7 +7,9 @@ import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ConfigEnum } from '../common/config/config.enum.ts'
 import { JwtStrategy } from './auth.strategy.ts'
+import { CaslAbilityService } from './casl.alibity.service.ts'
 
+@Global()
 @Module({
 	imports: [
 		UserModule,
@@ -24,7 +26,8 @@ import { JwtStrategy } from './auth.strategy.ts'
 			inject: [ConfigService],
 		}),
 	],
-	providers: [AuthService, JwtStrategy],
+	providers: [AuthService, JwtStrategy, CaslAbilityService],
 	controllers: [AuthController],
+	exports: [AuthService, CaslAbilityService],
 })
 export class AuthModule {}
