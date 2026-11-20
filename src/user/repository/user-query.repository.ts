@@ -54,7 +54,7 @@ export default class UserQueryRpst {
         SELECT 1
         FROM users_roles AS ur
         WHERE ur.userId = u.id
-          AND ur.roleIds = ?
+          AND ur.roleId = ?
       )`,
 			},
 		]
@@ -132,12 +132,12 @@ export default class UserQueryRpst {
 	 * 按用户名精确查询登录凭据，与不包含密码的列表查询分开。
 	 *
 	 * 用户名通过占位符绑定，不使用 LIKE；大小写规则由数据库列的排序规则决定。
-	 * 关联角色并归组为 roleIds 数组，不查询资料或 COUNT；密码只在服务内部用于比对。
+	 * 关联角色并归组为 roleId 数组，不查询资料或 COUNT；密码只在服务内部用于比对。
 	 * @returns 凭据行；未匹配时返回 null，由 AuthService 统一处理认证失败。
 	 */
 	async findOneByUsername(username: string): Promise<UserAuthRow | null> {
 		const rows = await this.repository.query<
-			(Omit<UserAuthRow, 'roleIds'> & { roleIds: number | null })[]
+			(Omit<UserAuthRow, 'roleId'> & { roleId: number | null })[]
 		>(
 			`
         SELECT
@@ -145,7 +145,7 @@ export default class UserQueryRpst {
           u.username,
           u.password,
           u.isActive,
-          ur.roleIds
+          ur.roleId
         FROM \`user\` AS u LEFT JOIN \`users_roles\` AS ur
           ON ur.userId = u.id
         WHERE u.username = ?
@@ -163,7 +163,7 @@ export default class UserQueryRpst {
 			username: first.username,
 			password: first.password,
 			isActive: first.isActive,
-			roleIds: rows.map(row => row.roleIds).filter((roleId): roleId is number => roleId !== null),
+			roleId: rows.map(row => row.roleId).filter((roleId): roleId is number => roleId !== null),
 		}
 	}
 
@@ -217,7 +217,7 @@ export default class UserQueryRpst {
           r.code AS roleCode,
           r.name AS roleName
         FROM users_roles AS ur
-        INNER JOIN roles AS r ON r.id = ur.roleIds
+        INNER JOIN roles AS r ON r.id = ur.roleId
         WHERE ur.userId IN (${placeholders})
         ORDER BY ur.userId, r.id
       `,

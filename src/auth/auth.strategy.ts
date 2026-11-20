@@ -17,11 +17,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 	}
 
 	/** 签名及过期校验通过后执行，返回值由 Passport 放到 request.user。 */
-	validate(payload: { userId: number; username: string; roleIds: number | number[] }) {
+	validate(payload: { userId: number; username: string; roleId: number | number[] }) {
 		return {
 			userId: payload.userId,
 			username: payload.username,
-			roleIds: payload.roleIds,
+			roleId: payload.roleId,
 		}
 	}
 }

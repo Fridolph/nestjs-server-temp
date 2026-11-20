@@ -1,13 +1,16 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
-// import { Observable } from 'rxjs';
+import {
+	type CanActivate,
+	type ExecutionContext,
+	ForbiddenException,
+	Injectable,
+	UnauthorizedException,
+} from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { CaslAbilityService } from '../../auth/casl.alibity.service.ts'
-import {
-	CaslHandlerType,
-	CHECK_POLICIES_KEY,
-	PolicyHandlerCallback,
-} from '../decorators/casl.decorator.ts'
+import { CHECK_POLICIES_KEY, type PolicyHandlerCallback } from '../decorators/casl.decorator.ts'
+import type { CaslRequest } from '../casl/casl.types.ts'
 
+/** 在 JwtGuard 之后执行；类级和方法级声明全部满足才放行。 */
 @Injectable()
 export class CaslGuard implements CanActivate {
 	constructor(
@@ -16,47 +19,19 @@ export class CaslGuard implements CanActivate {
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const handlers = this.reflector.getAllAndMerge<PolicyHandlerCallback[]>(
-			CHECK_POLICIES_KEY.Handler,
-			[context.getHandler(), context.getClass()]
-		)
-		const canHandlers = this.reflector.getAllAndMerge<any[]>(CHECK_POLICIES_KEY.Can, [
-			context.getHandler(),
-			context.getClass(),
-		]) as CaslHandlerType
-		const cannotHandlers = this.reflector.getAllAndMerge<any[]>(CHECK_POLICIES_KEY.Cannot, [
-			context.getHandler(),
-			context.getClass(),
-		]) as CaslHandlerType
-
-		// 若用户未设置上述任意一个 handler 则返回true
-		if (!handlers || !canHandlers || !cannotHandlers) return true
-
-		// 获取当前用户权限 以便后续逻辑判断
-		const req = context.switchToHttp().getRequest()
-		if (req?.user) {
-			const ability = await this.caslService.forRoot(req.user)
-			let flag = true
-			if (handlers) {
-				flag = flag && handlers.every(handler => handler(ability))
-			}
-			if (flag && canHandlers) {
-				if (canHandlers instanceof Array) {
-					flag = flag && canHandlers.every(handler => handler(ability))
-				} else if (typeof canHandlers === 'function') {
-					flag = flag && canHandlers(ability)
-				}
-			}
-			if (flag && cannotHandlers) {
-				if (cannotHandlers instanceof Array) {
-					flag = flag && cannotHandlers.every(handler => handler(ability))
-				} else if (typeof canHandlers === 'function') {
-					flag = flag && cannotHandlers(ability)
-				}
-			}
-			return flag
-		} else {
-			return false
+		const request = context.switchToHttp().getRequest<CaslRequest>()
+		if (!request.user || !Number.isSafeInteger(request.user.userId) || request.user.userId < 1) {
+			throw new UnauthorizedException('请先登录')
 		}
+		const targets = [context.getHandler(), context.getClass()]
+		const handlers = Object.values(CHECK_POLICIES_KEY).flatMap(
+			key => this.reflector.getAllAndMerge<PolicyHandlerCallback[]>(key, targets) ?? []
+		)
+		// 挂了授权 Guard 却忘写策略时默认拒绝；仅身份接口应显式声明 CheckPolicies(() => true)。
+		if (!handlers.length) throw new ForbiddenException('接口未声明授权策略')
+		const { ability } = await this.caslService.forRequest(request)
+		if (!handlers.every(handler => handler(ability)))
+			throw new ForbiddenException('没有执行该操作的权限')
+		return true
 	}
 }

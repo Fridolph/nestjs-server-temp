@@ -24,7 +24,7 @@ export class AuthService {
 			throw new UnauthorizedException('用户名或密码错误')
 		}
 		return this.issueAuthResponse(
-			{ userId: user.id, username: user.username, roleIds: user.roleIds },
+			{ userId: user.id, username: user.username, roleId: user.roleId },
 			'登录成功'
 		)
 	}
@@ -39,15 +39,15 @@ export class AuthService {
 
 	/** 登录和注册共用签发及响应白名单；仅接收已验证或已创建的用户身份。 */
 	private async issueAuthResponse(identity: UserIdentity, msg: string) {
-		const { userId, username, roleIds } = identity
-		const accessToken = await this.jwtService.signAsync({ userId, username, roleIds })
+		const { userId, username, roleId } = identity
+		const accessToken = await this.jwtService.signAsync({ userId, username, roleId })
 		const data = registerOutputSchema.parse({
 			userId,
 			username,
-			roleIds,
+			roleId,
 			accessToken,
 			tokenType: 'Bearer',
 		})
-		return { code: 200, data, msg }
+		return data
 	}
 }

@@ -8,12 +8,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ConfigEnum } from '../common/config/config.enum.ts'
 import { JwtStrategy } from './auth.strategy.ts'
 import { CaslAbilityService } from './casl.alibity.service.ts'
+import { PermissionsModule } from '../permissions/permissions.module.ts'
+import { CaslResourceRegistry } from '../common/casl/casl-resource.registry.ts'
 
 @Global()
 @Module({
 	imports: [
 		UserModule,
 		PassportModule,
+		PermissionsModule,
 		JwtModule.registerAsync({
 			imports: [ConfigModule],
 			useFactory: async (configService: ConfigService) => ({
@@ -26,7 +29,7 @@ import { CaslAbilityService } from './casl.alibity.service.ts'
 			inject: [ConfigService],
 		}),
 	],
-	providers: [AuthService, JwtStrategy, CaslAbilityService],
+	providers: [AuthService, JwtStrategy, CaslAbilityService, CaslResourceRegistry],
 	controllers: [AuthController],
 	exports: [AuthService, CaslAbilityService],
 })

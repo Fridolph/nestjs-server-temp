@@ -23,10 +23,10 @@ export class AdminGuard implements CanActivate {
 		}
 
 		// JWT 只用于确认身份；角色撤销或用户停用后，旧 Token 也不能继续管理资源。
-		const user = await this.us.findForAdmin(userId)
+		const user = await this.us.findForRole(userId)
 		if (
 			!user?.isActive ||
-			!user?.roles.some(role => ['super_admin', 'admin'].includes(role.roleCode))
+			!user?.role.some(role => ['super_admin', 'admin'].includes(role.roleCode))
 		) {
 			throw new ForbiddenException('没有管理员权限')
 		}

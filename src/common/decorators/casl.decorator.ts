@@ -1,5 +1,5 @@
-import { InferSubjects, type AnyMongoAbility } from '@casl/ability'
-import { SetMetadata } from '@nestjs/common'
+import type { AnyMongoAbility, SubjectType } from '@casl/ability'
+import type { CustomDecorator } from '@nestjs/common'
 import { CaslAction } from '../constants/casl.ts'
 
 export enum CHECK_POLICIES_KEY {
@@ -8,24 +8,35 @@ export enum CHECK_POLICIES_KEY {
 	Cannot = 'CHECK_POLICIES_CANNOT',
 }
 
-// Guards -> routes meta -> @CheckPolicies @Can @Cannot
-
 export type PolicyHandlerCallback = (ability: AnyMongoAbility) => boolean
+export type CaslHandlerType = PolicyHandlerCallback[]
 
-export type CaslHandlerType = PolicyHandlerCallback | PolicyHandlerCallback[]
+/** 同一目标上重复声明也追加保存；类与方法之间由 Guard 合并为 AND。 */
+function appendPolicies(
+	key: CHECK_POLICIES_KEY,
+	handlers: PolicyHandlerCallback[]
+): CustomDecorator {
+	const decorator: CustomDecorator = (
+		target: object,
+		_propertyKey?: string | symbol,
+		descriptor?: PropertyDescriptor
+	) => {
+		const destination = descriptor?.value ?? target
+		const existing = Reflect.getOwnMetadata(key, destination) as PolicyHandlerCallback[] | undefined
+		Reflect.defineMetadata(key, [...(existing ?? []), ...handlers], destination)
+	}
+	decorator.KEY = key
+	return decorator
+}
 
-// @CheckPolicies -> handler -> ability => boolean
+/** 声明入口策略；回调在 Guard 中执行，不在装饰器定义时执行。 */
 export const CheckPolicies = (...handlers: PolicyHandlerCallback[]) =>
-	SetMetadata(CHECK_POLICIES_KEY.Handler, handlers)
+	appendPolicies(CHECK_POLICIES_KEY.Handler, handlers)
 
-// @Can -> Action, Subject, Conditions
-export const Can = (action: CaslAction, subject: InferSubjects<any>, conditions?: any) =>
-	SetMetadata(CHECK_POLICIES_KEY.Can, (ability: AnyMongoAbility) =>
-		ability.can(action, subject, conditions)
-	)
+/** 第三个参数为单个字段名；数据条件需在 Ability 中定义并检查可信对象。 */
+export const Can = (action: CaslAction, subject: SubjectType, field?: string) =>
+	appendPolicies(CHECK_POLICIES_KEY.Can, [ability => ability.can(action, subject, field)])
 
-// @Cannot -> Actions, Subject, Conditions
-export const Cannot = (action: CaslAction, subject: InferSubjects<any>, conditions?: any) =>
-	SetMetadata(CHECK_POLICIES_KEY.Cannot, (ability: AnyMongoAbility) =>
-		ability.cannot(action, subject, conditions)
-	)
+/** 检查“不具备权限”，并非定义禁止规则；操作入口通常应使用 Can。 */
+export const Cannot = (action: CaslAction, subject: SubjectType, field?: string) =>
+	appendPolicies(CHECK_POLICIES_KEY.Cannot, [ability => ability.cannot(action, subject, field)])

@@ -30,27 +30,31 @@ export class MenusController {
 	@Roles('premium', 'guest')
 	@UseGuards(JwtGuard, RolesGuard)
 	// @UseGuards(JwtGuard, AdminGuard)
-	create(@Body(new ZodValidationPipe(createMenuSchema)) dto: CreateMenuDto) {
-		return this.menusService.create(dto)
+	async create(@Body(new ZodValidationPipe(createMenuSchema)) dto: CreateMenuDto) {
+		await this.menusService.create(dto)
+		return { code: 200, data: true, msg: '创建新菜单' }
 	}
 
 	@Get()
-	findAll() {
-		return this.menusService.findAll()
+	async findAll() {
+		const data = await this.menusService.findAll()
+		return { code: 200, data }
 	}
 
 	@Patch(':id')
 	@UseGuards(JwtGuard, AdminGuard)
-	update(
+	async update(
 		@Param('id', ParseIntPipe) id: number,
 		@Body(new ZodValidationPipe(updateMenuBodyBaseSchema)) dto: UpdateMenuBodyDto
 	) {
-		return this.menusService.update(id, dto)
+		const isUpdated = await this.menusService.update(id, dto)
+		return { code: 200, data: isUpdated, msg: '成功更新菜单信息' }
 	}
 
 	@Delete(':id')
 	@UseGuards(JwtGuard, AdminGuard)
-	remove(@Param('id', ParseIntPipe) id: number) {
-		return this.menusService.remove(id)
+	async remove(@Param('id', ParseIntPipe) id: number) {
+		const isRemoved = await this.menusService.removeById(id)
+		return { code: 200, data: isRemoved, msg: '成功删除菜单项' }
 	}
 }

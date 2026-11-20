@@ -31,8 +31,8 @@ export class SelfOrSuperGuard implements CanActivate {
 		}
 
 		const isSelf = currentUser.userId === targetUserId
-		const roleIds = Array.isArray(currentUser.roleIds) ? currentUser.roleIds : [currentUser.roleIds]
-		const isSuperAdmin = roleIds.includes(SUPER_ADMIN_ROLE_ID)
+		const roleId = Array.isArray(currentUser.roleId) ? currentUser.roleId : [currentUser.roleId]
+		const isSuperAdmin = roleId.includes(SUPER_ADMIN_ROLE_ID)
 
 		if (!isSelf && !isSuperAdmin) {
 			throw new ForbiddenException('没有权限修改该用户资料')

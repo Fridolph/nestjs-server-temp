@@ -1,7 +1,14 @@
+import { CaslAction } from '../../common/constants/casl.ts'
+import { CaslResource } from '../../common/decorators/casl-resource.decorator.ts'
 import type { Relation } from 'typeorm'
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm'
 import User from '../user.entity.ts'
 
+@CaslResource({
+	name: 'profile',
+	actions: [CaslAction.Read, CaslAction.Update],
+	fields: ['nickname', 'gender', 'photo', 'address'],
+})
 @Entity('profile')
 export default class UserProfile {
 	// 既是主键，也是指向 user.id 的外键；不自增。

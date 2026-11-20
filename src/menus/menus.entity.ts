@@ -1,3 +1,4 @@
+import { CaslResource } from '../common/decorators/casl-resource.decorator.ts'
 // menus.entity.ts
 
 import {
@@ -23,6 +24,11 @@ export enum MenuType {
 	Page = 'page', // 可访问的页面
 }
 
+@CaslResource({
+	name: 'menus',
+	actions: [CaslAction.Read, CaslAction.Create, CaslAction.Update, CaslAction.Delete],
+	fields: ['name', 'path', 'icon', 'order', 'visible', 'enabled'],
+})
 @Entity('menus')
 export class Menus {
 	/**

@@ -1,3 +1,5 @@
+import { CaslAction } from '../common/constants/casl.ts'
+import { CaslResource } from '../common/decorators/casl-resource.decorator.ts'
 import type { Relation } from 'typeorm'
 import {
 	Entity,
@@ -9,12 +11,19 @@ import {
 	OneToOne,
 	AfterInsert,
 	AfterRemove,
+	CreateDateColumn,
+	UpdateDateColumn,
 } from 'typeorm'
 import Logs from '../common/logs/logs.entity.ts'
 import Roles from '../roles/roles.entity.ts'
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import Profile from './profile/profile.entity.ts'
 
+@CaslResource({
+	name: 'users',
+	actions: [CaslAction.Read, CaslAction.Create, CaslAction.Update, CaslAction.Delete],
+	fields: ['id', 'username', 'phone', 'email', 'isActive'],
+})
 @Entity()
 export default class User {
 	@PrimaryGeneratedColumn('increment')
@@ -48,6 +57,21 @@ export default class User {
 	@IsBoolean()
 	isActive?: boolean
 
+	@CreateDateColumn({
+		type: 'datetime',
+		precision: 3,
+		default: () => 'CURRENT_TIMESTAMP(3)',
+	})
+	createdAt: Date
+
+	@UpdateDateColumn({
+		type: 'datetime',
+		precision: 3,
+		default: () => 'CURRENT_TIMESTAMP(3)',
+		onUpdate: 'CURRENT_TIMESTAMP(3)',
+	})
+	updatedAt: Date
+
 	// typescript -> 数据库 关联关系 Mapping
 	@OneToOne(() => Profile, profile => profile.user, { cascade: true })
 	profile: Relation<Profile>
@@ -63,11 +87,11 @@ export default class User {
 			referencedColumnName: 'id',
 		},
 		inverseJoinColumn: {
-			name: 'roleIds',
+			name: 'roleId',
 			referencedColumnName: 'id',
 		},
 	})
-	roles: Relation<Roles[]>
+	role: Relation<Roles[]>
 
 	@AfterInsert()
 	afterInsert() {

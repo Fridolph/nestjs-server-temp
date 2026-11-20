@@ -7,7 +7,7 @@ export type { CreateUserDto, UpdateProfileDto }
 export interface UserIdentity {
 	userId: number
 	username: string
-	roleIds: number[]
+	roleId: number[]
 }
 
 /** 仅供内部认证读取；不得直接返回接口或写入 JWT、日志。 */
@@ -16,7 +16,7 @@ export interface UserAuthRow {
 	username: string
 	password: string | null
 	isActive: number | boolean
-	roleIds: number[]
+	roleId: number[]
 }
 
 /** 用户列表的 HTTP 查询参数。 */

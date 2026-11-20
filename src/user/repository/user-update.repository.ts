@@ -14,20 +14,20 @@ export default class UserUpdateRpst {
 	async updateUser(id: number, actorId: number, dto: UpdateUserInputDto) {
 		return this.users.manager.transaction(async manager => {
 			const users = manager.getRepository(User)
-			const target = await users.findOne({ where: { id }, relations: { roles: true } })
+			const target = await users.findOne({ where: { id }, relations: { role: true } })
 			if (!target) throw new NotFoundException('用户不存在')
 
 			if (dto.roleCode !== undefined) {
-				const actor = await users.findOne({ where: { id: actorId }, relations: { roles: true } })
-				if (!actor?.roles.some(role => role.roleCode === 'super_admin')) {
+				const actor = await users.findOne({ where: { id: actorId }, relations: { role: true } })
+				if (!actor?.role.some(role => role.roleCode === 'super_admin')) {
 					throw new ForbiddenException('只有超管可以修改用户角色')
 				}
-				if (target.roles.some(role => role.roleCode === 'super_admin')) {
+				if (target.role.some(role => role.roleCode === 'super_admin')) {
 					throw new ForbiddenException('超管角色不可修改')
 				}
 				const role = await manager.getRepository(Roles).findOneBy({ roleCode: dto.roleCode })
 				if (!role) throw new NotFoundException('所选角色不存在')
-				target.roles = [role]
+				target.role = [role]
 			}
 
 			if (dto.phone !== undefined) target.phone = dto.phone

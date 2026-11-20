@@ -36,7 +36,7 @@ export default class UserCreateRpst {
 	 * @throws ForbiddenException - 所选角色包含超管。
 	 */
 	async createUser(dto: CreateUserDto) {
-		return this.persistUser(dto, dto.roleIds)
+		return this.persistUser(dto, dto.roleId)
 	}
 
 	/**
@@ -44,29 +44,29 @@ export default class UserCreateRpst {
 	 * 角色查询和用户、资料写入使用同一事务；默认角色缺失则中止，不创建无角色用户。
 	 * @throws ServiceUnavailableException - 普通用户角色尚未配置。
 	 */
-	async createRegisteredUser(dto: Omit<CreateUserDto, 'roleIds'>) {
+	async createRegisteredUser(dto: Omit<CreateUserDto, 'roleId'>) {
 		return await this.persistUser(dto)
 	}
 
 	/** 复用创建事务；管理员创建传角色 ID，注册分支始终按稳定 code 查普通用户。 */
-	private async persistUser(dto: Omit<CreateUserDto, 'roleIds'>, roleIds?: number[]) {
+	private async persistUser(dto: Omit<CreateUserDto, 'roleId'>, roleId?: number[]) {
 		// 事务开始前完成密码哈希
 		const pwd = await argon2.hash(dto.password)
 
 		const newUser = await this.userRepository.manager.transaction(async manager => {
 			const users = manager.getRepository(User)
 			const profiles = manager.getRepository(UserProfile)
-			const roles = await manager
+			const roleInfo = await manager
 				.getRepository(Roles)
-				.findBy(roleIds === undefined ? { roleCode: 'user' } : { id: In(roleIds) })
+				.findBy(roleId === undefined ? { roleCode: 'user' } : { id: In(roleId) })
 
-			if (roleIds === undefined && roles.length !== 1) {
+			if (roleId === undefined && roleInfo.length !== 1) {
 				throw new ServiceUnavailableException('注册服务暂不可用：普通用户角色未配置')
 			}
-			if (roleIds !== undefined && roles.length !== roleIds.length) {
+			if (roleId !== undefined && roleInfo.length !== roleId.length) {
 				throw new BadRequestException('所选角色不存在')
 			}
-			if (roles.some(role => role.roleCode === 'super_admin')) {
+			if (roleInfo.some(role => role.roleCode === 'super_admin')) {
 				throw new ForbiddenException('创建用户时不能分配超管角色')
 			}
 
@@ -78,7 +78,7 @@ export default class UserCreateRpst {
 			const user = users.create({
 				username: dto.username,
 				password: pwd,
-				roles,
+				role: roleInfo,
 			})
 			await users.save(user)
 			await profiles.insert({

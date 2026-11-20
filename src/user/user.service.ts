@@ -100,14 +100,14 @@ export class UserService {
 	}
 
 	/** 创建普通用户，事务完成后仅返回身份字段，供 AuthService 自动登录。 */
-	async register(dto: Omit<CreateUserDto, 'roleIds'>) {
+	async register(dto: Omit<CreateUserDto, 'roleId'>) {
 		const newUser = await this.createRpst.createRegisteredUser(dto)
 		return {
 			code: 200,
 			data: {
 				userId: newUser.id,
 				username: newUser.username,
-				roleIds: newUser.roles.map(role => role.id),
+				roleId: newUser.role.map(role => role.id),
 			},
 			msg: `[${newUser.id}: ${newUser.username}] 注册成功`,
 		}
@@ -131,14 +131,14 @@ export class UserService {
 		return { code: 200, data: true, msg: '用户删除成功' }
 	}
 
-	async findForAdmin(userId: number) {
+	async findForRole(userId: number) {
 		const user = await this.userRepository.findOne({
 			where: { id: userId },
-			relations: { roles: true },
+			relations: { role: true },
 			select: {
 				id: true,
 				isActive: true,
-				roles: {
+				role: {
 					id: true,
 					roleCode: true,
 				},

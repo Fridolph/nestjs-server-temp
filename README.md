@@ -52,13 +52,13 @@ $ pnpm install
 
 ## 自助注册（当前学习阶段）
 
-`POST /api/v1/auth/register` 接收用户名、密码和可选昵称，不接收 `roleIds` 等角色字段。
+`POST /api/v1/auth/register` 接收用户名、密码和可选昵称，不接收 `roleId` 等角色字段。
 
 ```json
 { "username": "student", "password": "Study123" }
 ```
 
-后端在创建事务中按 `roles.code = 'user'` 查询普通用户角色，再创建用户、角色关联和资料；不依赖角色 ID 为 3。默认角色缺失时中止注册。管理员创建入口 `POST /users` 仍使用单独的 `createUserSchema` 接收 `roleIds`，不能分配超管。
+后端在创建事务中按 `roles.code = 'user'` 查询普通用户角色，再创建用户、角色关联和资料；不依赖角色 ID 为 3。默认角色缺失时中止注册。管理员创建入口 `POST /users` 仍使用单独的 `createUserSchema` 接收 `roleId`，不能分配超管。
 
 密码在写入事务前完成 Argon2 哈希，登录使用 `argon2.verify` 校验。Repository 只处理持久化，不依赖 JwtService；UserService 注册后只返回用户 ID、用户名和角色 ID，由 AuthService 在事务提交后自动签发 Token。
 
@@ -157,3 +157,7 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## CASL 学习与测试
+
+资源自动注册、字段授权、数据库迁移和 `/permissions` 手动测试步骤见 [权限模块说明](src/permissions/README.md)。

@@ -49,14 +49,14 @@ export class RolesGuard implements CanActivate {
 		}
 
 		// 假设该方法返回用户的 isActive 和 roles。
-		const user = await this.userService.findForAdmin(userId)
+		const user = await this.userService.findForRole(userId)
 		console.log('user', user)
 
 		if (!user?.isActive) {
 			throw new ForbiddenException('用户不存在或已被停用')
 		}
 
-		const hasRequiredRole = user.roles.some(role => requiredRoles.includes(role.roleCode as any))
+		const hasRequiredRole = user.role.some(role => requiredRoles.includes(role.roleCode as any))
 
 		if (!hasRequiredRole) {
 			throw new ForbiddenException('没有该操作权限')

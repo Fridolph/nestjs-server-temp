@@ -1,7 +1,14 @@
+import { CaslAction } from '../constants/casl.ts'
+import { CaslResource } from '../decorators/casl-resource.decorator.ts'
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm'
 import type { Relation } from 'typeorm'
 import User from '../../user/user.entity.ts'
 
+@CaslResource({
+	name: 'logs',
+	actions: [CaslAction.Read, CaslAction.Export, CaslAction.Delete],
+	fields: ['id', 'path', 'method'],
+})
 @Entity()
 export default class Logs {
 	@PrimaryGeneratedColumn()

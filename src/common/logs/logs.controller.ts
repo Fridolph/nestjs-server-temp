@@ -1,26 +1,14 @@
 import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common'
 import { JwtGuard } from '../guards/jwt.guard.ts'
-import { AdminGuard } from '../guards/admin.guard.ts'
 import { CaslGuard } from '../guards/casl.guard.ts'
-import { Can, Cannot, CheckPolicies } from '../decorators/casl.decorator.ts'
+import { Can } from '../decorators/casl.decorator.ts'
 import Logs from './logs.entity.ts'
 import { CaslAction } from '../constants/casl.ts'
 
 @Controller('logs')
 @UseGuards(JwtGuard, CaslGuard)
-@CheckPolicies(ability => ability.can(CaslAction.Read, Logs))
 export class LogsController {
-	constructor() {}
-
-	@Get('test')
-	@Can(CaslAction.Read, Logs)
-	test() {
-		return {
-			code: 200,
-			msg: '测试成功',
-		}
-	}
-
+	/** 查询指定用户日志的学习入口，先执行日志读取授权。 */
 	@Get(':id')
 	@Can(CaslAction.Read, Logs)
 	getUserLogs(@Param('id', ParseIntPipe) id: number) {
@@ -30,7 +18,9 @@ export class LogsController {
 		}
 	}
 
+	/** 查询分组日志的学习入口。 */
 	@Get('logsByGroup/:id')
+	@Can(CaslAction.Read, Logs)
 	getLogsByGroup(@Param('id', ParseIntPipe) id: number) {
 		return {}
 		// return this.userService.findLogsByGroup(id)

@@ -1,45 +1,49 @@
 import { AbilityBuilder, createMongoAbility } from '@casl/ability'
-import { Injectable } from '@nestjs/common'
-// import Logs from '../common/logs/logs.entity.ts'
-// import { UserService } from '../user/user.service.ts'
-import { getEntities } from '../common/utils/entity.ts'
-import { MenusService } from '../menus/menus.service.ts'
+import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { CaslAction } from '../common/constants/casl.ts'
+import { CaslResourceRegistry } from '../common/casl/casl-resource.registry.ts'
+import type { CaslAuthorization, CaslRequest } from '../common/casl/casl.types.ts'
+import { PermissionsService } from '../permissions/permissions.service.ts'
 
+/** 将当前数据库授权转换成 CASL；资源注册表只解析资源，不负责授予权限。 */
 @Injectable()
 export class CaslAbilityService {
-	constructor(private readonly menuService: MenusService) {}
+	constructor(
+		private readonly permissionsService: PermissionsService,
+		private readonly resources: CaslResourceRegistry
+	) {}
 
-	async forRoot(user: { userId: number; username: string; roleIds: number[] }) {
-		console.log('🚀 CaslAbilityService ~ forRoot ~ user:\n', user)
+	/** 同一请求内复用 Promise，Guard、Controller、Service 共用一次授权查询。 */
+	forRequest(request: CaslRequest): Promise<CaslAuthorization> {
+		if (!request.user || !Number.isSafeInteger(request.user.userId) || request.user.userId < 1) {
+			throw new UnauthorizedException('请先登录')
+		}
+		request.authorization ??= this.createAuthorization(request.user.userId)
+		return request.authorization
+	}
 
-		// 针对整个系统的 -> createUser XXX System
-		const { can, cannot, build } = new AbilityBuilder(createMongoAbility)
-		// can('manage', 'all')
-		// 提几种思路：
-		// 1、menu 名称、路径、acl -> Actions -> 名称、路径 -> 对应实体
-		// path -> prefix -> 写死在项目代码里
+	async createForUser(user: { userId: number }) {
+		return (await this.createAuthorization(user.userId)).ability
+	}
 
-		// 2、acl 单独数据表进行存储：
-		// logController + Action  直接按 controller 进行对应
-
-		// 3. log -> sys:log:read, admin:log:update ...
-		// can('read', Logs)
-		// cannot('update', Logs)
-		const menus = await this.menuService.findWithRoleId(user.userId)
-		console.log('🚀 CaslAbilityService ~ forRoot ~ menuList:\n', menus)
-
-		menus.forEach(menu => {
-			const actions = menu.acl.split(',')
-			for (let i = 0; i < actions.length; i++) {
-				const action = actions[i].trim()
-				can(action, getEntities(menu.path as string))
+	private async createAuthorization(userId: number): Promise<CaslAuthorization> {
+		const access = await this.permissionsService.getAccessForUser(userId)
+		const { can, build } = new AbilityBuilder(createMongoAbility)
+		if (access.isSuperAdmin) {
+			// 超管仍需有效身份；只有可信角色分支能产生全资源通配规则。
+			can(CaslAction.Manage, 'all')
+		} else {
+			for (const permission of access.permissions) {
+				const target = this.resources.resolve(permission)
+				if (permission.fields === null) can(permission.action, target)
+				else can(permission.action, target, permission.fields)
 			}
-		})
-
-		const ability = build({
-			detectSubjectType: obj => obj.constructor,
-		})
-
-		return ability
+		}
+		return {
+			ability: build({ detectSubjectType: object => object.constructor }),
+			permissions: access.isSuperAdmin
+				? [this.permissionsService.superPermission()]
+				: access.permissions,
+		}
 	}
 }
