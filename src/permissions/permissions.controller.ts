@@ -3,6 +3,8 @@ import {
 	Controller,
 	Get,
 	HttpCode,
+	Patch,
+	Delete,
 	Param,
 	ParseIntPipe,
 	Post,
@@ -15,11 +17,16 @@ import { CaslGuard } from '../common/guards/casl.guard.ts'
 import { Can, CheckPolicies } from '../common/decorators/casl.decorator.ts'
 import { CaslAction } from '../common/constants/casl.ts'
 import type { CaslRequest } from '../common/casl/casl.types.ts'
-import { Permissions } from './permission.entity.ts'
 import Logs from '../common/logs/logs.entity.ts'
 import UserProfile from '../user/profile/profile.entity.ts'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.ts'
 import { updateProfileSchema, type UpdateProfileDto } from '../user/dto/update-profile.dto.ts'
+import {
+	createPermissionSchema,
+	updatePermissionSchema,
+	type CreatePermissionDto,
+	type UpdatePermissionDto,
+} from './permissions.dto.ts'
 
 @Controller('permissions')
 @UseGuards(JwtGuard, CaslGuard)
@@ -67,16 +74,40 @@ export class PermissionsController {
 		return this.permissionsService.testProfileFields(ability, request.user!.userId, dto)
 	}
 
-	/** 查询权限目录；普通日志角色不能仅凭日志权限查看授权配置。 */
+	/** 按资源分组查询权限目录；全局权限目录只允许超管查看。 */
 	@Get()
-	@Can(CaslAction.Read, Permissions)
+	@CheckPolicies(ability => ability.can(CaslAction.Manage, 'all'))
 	findAll() {
 		return this.permissionsService.findAll()
 	}
 
+	/** 仅超管可以创建权限；权限目录会影响全站授权，不能由普通角色管理。 */
+	@Post()
+	@CheckPolicies(ability => ability.can(CaslAction.Manage, 'all'))
+	create(@Body(new ZodValidationPipe(createPermissionSchema)) dto: CreatePermissionDto) {
+		return this.permissionsService.create(dto)
+	}
+
+	/** 仅超管可以编辑权限目录；权限编码保持稳定，避免角色关联失效。 */
+	@Patch(':id')
+	@CheckPolicies(ability => ability.can(CaslAction.Manage, 'all'))
+	update(
+		@Param('id', ParseIntPipe) id: number,
+		@Body(new ZodValidationPipe(updatePermissionSchema)) dto: UpdatePermissionDto
+	) {
+		return this.permissionsService.update(id, dto)
+	}
+
+	/** 仅超管可以删除权限，且服务层会拒绝仍被角色使用的记录。 */
+	@Delete(':id')
+	@CheckPolicies(ability => ability.can(CaslAction.Manage, 'all'))
+	remove(@Param('id', ParseIntPipe) id: number) {
+		return this.permissionsService.remove(id)
+	}
+
 	/** 查询其他用户授权，目标 ID 不参与当前请求的身份或 Ability 构建。 */
 	@Get(':userId')
-	@Can(CaslAction.Read, Permissions)
+	@CheckPolicies(ability => ability.can(CaslAction.Manage, 'all'))
 	findPermissions(@Param('userId', ParseIntPipe) userId: number) {
 		return this.permissionsService.findPermissionByUserId(userId)
 	}

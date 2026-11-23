@@ -4,15 +4,46 @@
 
 ## 资源注册
 
-Entity 使用 `@CaslResource({ name, actions, fields })` 声明授权词汇。`CaslResourceRegistry` 在启动时读取 TypeORM 已加载的 Entity，跳过中间表，拒绝重复名称和保留名称 `all`。不需要在中央映射中添加 import。
+Entity 使用 `@CaslResource({ name, label, actions, fields })` 声明授权词汇。`CaslResourceRegistry` 在启动时读取 TypeORM 已加载的 Entity，跳过中间表，拒绝重复名称和保留名称 `all`。不需要在中央映射中添加 import。
 
 - `name` 是稳定业务标识，与权限表 `resource` 精确一致；不是 Controller 路径前缀。
+- `label` 是资源中文展示名，不参与授权；缺省时目录回退为资源编码。
 - `actions` 限定该资源支持的普通动作；`manage` 只由可信超管分支生成。
 - `fields` 限定可逐字段授权的业务字段，不自动包含所有数据库列。
 - 注册资源不等于授予权限。增加 Entity 后仍需权限目录记录、角色关联以及业务检查入口。
 - 权限编码 `code` 用于展示与分配；不能靠解析编码绕过 resource/action/fields 校验。
 
 资源现值：`logs`、`users`、`profile`、`roles`、`menus`、`permissions`。
+
+## 权限目录展示契约
+
+`GET /permissions` 返回按资源分组的完整目录，仅超管可访问。每组包含
+`resource`、资源展示名 `name`、去重的 `actions` 和逐条 `permissions`。
+`actions` 表示已配置动作（含停用项），并非当前用户已获得的动作。
+
+例如两条日志权限会显示为一组：
+
+```json
+{
+  "code": 200,
+  "data": [{
+    "resource": "logs",
+    "name": "系统日志",
+    "actions": ["read", "export"],
+    "permissions": [
+      { "id": 1, "code": "log:read", "name": "系统日志读取", "resource": "logs", "action": "read", "fields": null, "enabled": true },
+      { "id": 2, "code": "log:export", "name": "系统日志导出", "resource": "logs", "action": "export", "fields": ["path"], "enabled": false }
+    ]
+  }]
+}
+```
+
+示例省略每条明细的 createdAt/updatedAt。数据库仍逐动作存储，单条权限继续按 ID 编辑/删除；
+Service 分组，Repository 读取并排序，不使用会丢失明细的 SQL GROUP BY。
+`/permissions/me` 和 `/permissions/:userId` 仍返回扁平有效权限，CASL 构建规则不使用分组目录。
+
+本次目录响应结构有变化，前后端需配套更新。当前不分页；后续分页需以资源为单位，避免拆散同组明细。
+角色授权 CheckboxGroup、批量创建及审计另作后续阶段，本轮没有新增这些写入接口。
 
 ## 数据库准备
 
@@ -51,8 +82,11 @@ pnpm run migration:run
 | GET `/permissions/test/logs/export`     | 要求 Logs export                                                     |
 | GET `/permissions/test/logs/delete`     | 要求 Logs delete；无实际删除                                         |
 | POST `/permissions/test/profile/update` | 要求 Profile update，并检查实际提交的每个字段；HTTP 200，无实际更新  |
-| GET `/permissions`                      | 要求 Permissions read，读取目录；只拥有日志权限的管理员应为 403      |
-| GET `/permissions/:userId`              | 要求 Permissions read，读取目标用户授权；目标 ID 不影响当前请求身份  |
+| GET `/permissions`                      | 仅超管；按资源分组读取完整权限目录                                  |
+| GET `/permissions/:userId`              | 仅超管；读取目标用户授权；目标 ID 不影响当前请求身份                  |
+| POST `/permissions`                     | 仅超管；创建权限目录记录并校验 resource/action/fields 与 CASL 注册表一致 |
+| PATCH `/permissions/:id`                | 仅超管；更新名称、资源、动作、启用状态或字段范围，code 保持不变      |
+| DELETE `/permissions/:id`               | 仅超管；仅允许删除未被角色关联的权限，已关联返回 409              |
 
 测试 Profile：只分配示例的 `profile:edit-basic`，不要同时分配不限制字段的 profile/update。
 

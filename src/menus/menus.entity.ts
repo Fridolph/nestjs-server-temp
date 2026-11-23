@@ -26,6 +26,7 @@ export enum MenuType {
 
 @CaslResource({
 	name: 'menus',
+	label: '菜单',
 	actions: [CaslAction.Read, CaslAction.Create, CaslAction.Update, CaslAction.Delete],
 	fields: ['name', 'path', 'icon', 'order', 'visible', 'enabled'],
 })

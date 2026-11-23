@@ -21,6 +21,7 @@ import Profile from './profile/profile.entity.ts'
 
 @CaslResource({
 	name: 'users',
+	label: '用户',
 	actions: [CaslAction.Read, CaslAction.Create, CaslAction.Update, CaslAction.Delete],
 	fields: ['id', 'username', 'phone', 'email', 'isActive'],
 })

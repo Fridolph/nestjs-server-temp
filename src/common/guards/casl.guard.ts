@@ -7,7 +7,11 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { CaslAbilityService } from '../../auth/casl.alibity.service.ts'
-import { CHECK_POLICIES_KEY, type PolicyHandlerCallback } from '../decorators/casl.decorator.ts'
+import {
+	CHECK_POLICIES_KEY,
+	describePolicy,
+	type PolicyHandlerCallback,
+} from '../decorators/casl.decorator.ts'
 import type { CaslRequest } from '../casl/casl.types.ts'
 
 /** 在 JwtGuard 之后执行；类级和方法级声明全部满足才放行。 */
@@ -23,15 +27,21 @@ export class CaslGuard implements CanActivate {
 		if (!request.user || !Number.isSafeInteger(request.user.userId) || request.user.userId < 1) {
 			throw new UnauthorizedException('请先登录')
 		}
+
 		const targets = [context.getHandler(), context.getClass()]
 		const handlers = Object.values(CHECK_POLICIES_KEY).flatMap(
 			key => this.reflector.getAllAndMerge<PolicyHandlerCallback[]>(key, targets) ?? []
 		)
+
 		// 挂了授权 Guard 却忘写策略时默认拒绝；仅身份接口应显式声明 CheckPolicies(() => true)。
 		if (!handlers.length) throw new ForbiddenException('接口未声明授权策略')
+
 		const { ability } = await this.caslService.forRequest(request)
-		if (!handlers.every(handler => handler(ability)))
-			throw new ForbiddenException('没有执行该操作的权限')
+		const failedPolicies = handlers.filter(handler => !handler(ability))
+		if (failedPolicies.length) {
+			const operation = failedPolicies.map(describePolicy).join('、')
+			throw new ForbiddenException(`没有执行该操作的权限：${operation}`)
+		}
 		return true
 	}
 }

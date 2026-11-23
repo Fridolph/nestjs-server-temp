@@ -15,6 +15,7 @@ import { Permissions } from '../permissions/permission.entity.ts'
 
 @CaslResource({
 	name: 'roles',
+	label: '角色',
 	actions: [CaslAction.Read, CaslAction.Create, CaslAction.Update, CaslAction.Delete],
 	fields: ['roleName', 'description'],
 })

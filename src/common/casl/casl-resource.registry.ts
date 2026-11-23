@@ -36,8 +36,8 @@ export class CaslResourceRegistry implements OnModuleInit {
 		}
 	}
 
-	/** 未知资源、保留动作、非法字段均按配置错误拒绝，不能退化成无限制授权。 */
-	resolve(permission: EffectivePermission) {
+	/** 未知资源、保留动作、非法字段均拒绝，不能退化成无限制授权。 */
+	resolve(permission: EffectivePermission, invalid = () => new InternalServerErrorException('权限配置无效，请联系管理员')) {
 		const definition = this.resources.get(permission.resource)
 		if (
 			!definition ||
@@ -45,8 +45,13 @@ export class CaslResourceRegistry implements OnModuleInit {
 			(permission.fields !== null &&
 				permission.fields.some(field => !definition.fields.includes(field)))
 		) {
-			throw new InternalServerErrorException('权限配置无效，请联系管理员')
+			throw invalid()
 		}
 		return definition.target
+	}
+
+	/** 返回资源的管理端展示名称；缺少配置时退回资源编码。 */
+	label(resource: string) {
+		return this.resources.get(resource)?.label ?? resource
 	}
 }

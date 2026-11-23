@@ -6,6 +6,7 @@ import User from '../../user/user.entity.ts'
 
 @CaslResource({
 	name: 'logs',
+	label: '系统日志',
 	actions: [CaslAction.Read, CaslAction.Export, CaslAction.Delete],
 	fields: ['id', 'path', 'method'],
 })

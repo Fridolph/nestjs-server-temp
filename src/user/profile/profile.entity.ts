@@ -6,6 +6,7 @@ import User from '../user.entity.ts'
 
 @CaslResource({
 	name: 'profile',
+	label: '用户资料',
 	actions: [CaslAction.Read, CaslAction.Update],
 	fields: ['nickname', 'gender', 'photo', 'address'],
 })

@@ -29,6 +29,10 @@ describe('/permissions 授权 HTTP 链路', () => {
 	const token = (id: number) => jwt.sign({ userId: id, username: 'test' })
 	const repository = {
 		findAll: vi.fn().mockResolvedValue([]),
+		createPermission: vi.fn(async (dto: Record<string, unknown>) => ({ id: 17, ...dto, createdAt: new Date(), updatedAt: new Date() })),
+		findById: vi.fn(async (id: number) => id === 17 ? ({ id: 17, code: 'logs:read', name: '日志读取', resource: 'logs', action: 'read', enabled: true, fields: null, createdAt: new Date(), updatedAt: new Date() }) : null),
+		updatePermission: vi.fn().mockResolvedValue({ affected: 1 }),
+		removeUnassignedPermission: vi.fn().mockResolvedValue('deleted'),
 		findUserAccess: vi.fn(async (id: number) =>
 			id === 404
 				? []
@@ -113,6 +117,33 @@ describe('/permissions 授权 HTTP 链路', () => {
 			.get('/permissions')
 			.auth(token(2), { type: 'bearer' })
 			.expect(403)
+		await request(app.getHttpServer())
+			.get('/permissions/1')
+			.auth(token(2), { type: 'bearer' })
+			.expect(403)
+	})
+
+	it('目录按资源分组并保留动作明细；me 仍返回扁平授权快照', async () => {
+		const dates = { createdAt: new Date('2026-11-20T00:00:00Z'), updatedAt: new Date('2026-11-20T00:00:00Z') }
+		const rows = [
+			{ id: 1, code: 'log:read', name: '系统日志读取', resource: 'logs', action: 'read', fields: null, enabled: true, role: [], ...dates },
+			{ id: 2, code: 'log:export', name: '系统日志导出', resource: 'logs', action: 'export', fields: ['path'], enabled: false, ...dates },
+			{ id: 3, code: 'profile:basic', name: '基本资料', resource: 'profile', action: 'update', fields: ['nickname'], enabled: true, ...dates },
+			{ id: 4, code: 'profile:photo', name: '头像', resource: 'profile', action: 'update', fields: ['photo'], enabled: true, ...dates },
+		]
+		repository.findAll.mockResolvedValueOnce(rows as never)
+		const response = await request(app.getHttpServer()).get('/permissions').auth(token(1), { type: 'bearer' }).expect(200)
+		expect(response.body.data).toHaveLength(2)
+		expect(response.body.data[0]).toMatchObject({
+			resource: 'logs', name: '系统日志', actions: ['read', 'export'],
+			permissions: [{ id: 1, fields: null, enabled: true }, { id: 2, fields: ['path'], enabled: false }],
+		})
+		expect(response.body.data[1]).toMatchObject({ resource: 'profile', actions: ['update'], permissions: [{ id: 3 }, { id: 4 }] })
+		expect(response.body.data[0].permissions[0].createdAt).toBe('2026-11-20T00:00:00.000Z')
+		const me = await request(app.getHttpServer()).get('/permissions/me').auth(token(2), { type: 'bearer' }).expect(200)
+		expect(me.body.data).toEqual([{ code: 'log:read', resource: 'logs', action: 'read', fields: null }])
+		const empty = await request(app.getHttpServer()).get('/permissions').auth(token(1), { type: 'bearer' }).expect(200)
+		expect(empty.body.data).toEqual([])
 	})
 
 	it('字段演示按实际提交字段拒绝，Zod 拒绝额外键', async () => {
@@ -142,5 +173,19 @@ describe('/permissions 授权 HTTP 链路', () => {
 			.get('/permissions/me')
 			.auth(token(404), { type: 'bearer' })
 			.expect(404)
+	})
+
+	it('仅超管可写权限目录，并拒绝非法资源、保留动作和编码修改', async () => {
+		const input = { code: 'logs:read', name: '日志读取', resource: 'logs', action: 'read', fields: null, enabled: true }
+		await request(app.getHttpServer()).post('/permissions').auth(token(2), { type: 'bearer' }).send(input).expect(403)
+		const created = await request(app.getHttpServer()).post('/permissions').auth(token(1), { type: 'bearer' }).send(input).expect(201)
+		expect(created.body.data.code).toBe('logs:read')
+		await request(app.getHttpServer()).post('/permissions').auth(token(1), { type: 'bearer' }).send({ ...input, resource: 'unknown' }).expect(400)
+		await request(app.getHttpServer()).post('/permissions').auth(token(1), { type: 'bearer' }).send({ ...input, action: 'manage' }).expect(400)
+		await request(app.getHttpServer()).patch('/permissions/17').auth(token(1), { type: 'bearer' }).send({ code: 'logs:delete' }).expect(400)
+		await request(app.getHttpServer()).patch('/permissions/17').auth(token(2), { type: 'bearer' }).send({ name: '新名称' }).expect(403)
+		await request(app.getHttpServer()).patch('/permissions/17').auth(token(1), { type: 'bearer' }).send({ name: '新名称' }).expect(200)
+		await request(app.getHttpServer()).delete('/permissions/17').auth(token(2), { type: 'bearer' }).expect(403)
+		await request(app.getHttpServer()).delete('/permissions/17').auth(token(1), { type: 'bearer' }).expect(200)
 	})
 })

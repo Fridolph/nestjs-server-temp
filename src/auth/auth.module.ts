@@ -9,7 +9,6 @@ import { ConfigEnum } from '../common/config/config.enum.ts'
 import { JwtStrategy } from './auth.strategy.ts'
 import { CaslAbilityService } from './casl.alibity.service.ts'
 import { PermissionsModule } from '../permissions/permissions.module.ts'
-import { CaslResourceRegistry } from '../common/casl/casl-resource.registry.ts'
 
 @Global()
 @Module({
@@ -29,7 +28,7 @@ import { CaslResourceRegistry } from '../common/casl/casl-resource.registry.ts'
 			inject: [ConfigService],
 		}),
 	],
-	providers: [AuthService, JwtStrategy, CaslAbilityService, CaslResourceRegistry],
+	providers: [AuthService, JwtStrategy, CaslAbilityService],
 	controllers: [AuthController],
 	exports: [AuthService, CaslAbilityService],
 })

@@ -5,6 +5,8 @@ export const CASL_RESOURCE_KEY = Symbol('CASL_RESOURCE')
 
 export interface CaslResourceOptions {
 	name: string
+	/** 管理端展示的资源名称；不参与授权匹配。 */
+	label?: string
 	actions: readonly CaslAction[]
 	/** 可被单独授权的字段；不包含密码、关系对象等内部数据。 */
 	fields: readonly string[]

@@ -3,6 +3,7 @@ import { PermissionsService } from '../permissions.service.ts'
 import type { Repository, QueryRunner } from 'typeorm'
 import type { Permissions } from '../permission.entity.ts'
 import { PermissionFields1795172400000 } from '../../migrations/1795172400000-permission_fields.ts'
+import type { CaslResourceRegistry } from '../../common/casl/casl-resource.registry.ts'
 
 describe('权限持久化契约', () => {
 	it('用户 ID 以参数绑定，授权查询包含字段与禁用过滤', async () => {
@@ -21,7 +22,7 @@ describe('权限持久化契约', () => {
 			findUserAccess: vi.fn().mockResolvedValue([{ userId: 2, isActive: 1, roleCode: null }]),
 			findEffectivePermissions: vi.fn().mockResolvedValue([]),
 		}
-		const service = new PermissionsService(repository as unknown as PermissionsRepository)
+		const service = new PermissionsService(repository as unknown as PermissionsRepository, {} as CaslResourceRegistry)
 		await expect(service.getAccessForUser(2)).resolves.toEqual({
 			isSuperAdmin: false,
 			permissions: [],

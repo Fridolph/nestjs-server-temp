@@ -133,11 +133,15 @@ describe('CASL Guard 元数据执行', () => {
 	it('重复 Can 不覆盖，任一策略不满足则拒绝', async () => {
 		const { service } = setup(false, [permission()])
 		const guard = new CaslGuard(new Reflector(), service)
-		await expect(
-			guard.canActivate(
+		try {
+			await guard.canActivate(
 				context({ user: { userId: 2 } }, Controller.prototype.twoPolicies, Controller)
 			)
-		).rejects.toThrow('没有执行')
+			throw new Error('预期 Guard 应拒绝请求')
+		} catch (error) {
+			expect(error).toHaveProperty('message', '没有执行该操作的权限：export Logs')
+			expect((error as Error).message).not.toContain('"u"')
+		}
 	})
 
 	it('类和方法策略叠加为 AND，方法不能覆盖类要求', async () => {
