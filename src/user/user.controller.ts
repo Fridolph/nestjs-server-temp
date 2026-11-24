@@ -21,6 +21,8 @@ import { JwtGuard } from '../common/guards/jwt.guard.ts'
 import { AdminGuard } from '../common/guards/admin.guard.ts'
 
 @Controller('users')
+// 后台用户接口统一验证会话，登出后列表和写操作都拒绝旧令牌。
+@UseGuards(JwtGuard)
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
@@ -42,14 +44,14 @@ export class UserController {
 	 * @returns 创建成功响应。
 	 */
 	@Post()
-	@UseGuards(JwtGuard, AdminGuard)
+	@UseGuards(AdminGuard)
 	addUser(@Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserDto) {
 		return this.userService.create(dto)
 	}
 
 	/** 管理员更新用户，角色变更由仓库额外校验超管身份。 */
 	@Patch(':id')
-	@UseGuards(JwtGuard, AdminGuard)
+	@UseGuards(AdminGuard)
 	updateUser(
 		@Param('id', ParseIntPipe) id: number,
 		@Req() request: { user: { userId: number } },
@@ -65,6 +67,7 @@ export class UserController {
 	 * @returns 删除成功响应。
 	 */
 	@Delete('/:id')
+	@UseGuards(AdminGuard)
 	removeUser(@Param('id', ParseIntPipe) id: number) {
 		return this.userService.remove(id)
 	}

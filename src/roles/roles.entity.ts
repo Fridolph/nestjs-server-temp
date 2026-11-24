@@ -6,6 +6,7 @@ import {
 	PrimaryGeneratedColumn,
 	Column,
 	ManyToMany,
+	OneToMany,
 	CreateDateColumn,
 	UpdateDateColumn,
 } from 'typeorm'
@@ -59,7 +60,7 @@ export default class Roles {
 	updatedAt: Date
 
 	/** 被分配该角色的用户；删除前必须确保关联为空。 */
-	@ManyToMany(() => User, user => user.role)
+	@OneToMany(() => User, user => user.role)
 	users: Relation<User[]>
 
 	@ManyToMany(() => Permissions, permissions => permissions.role)

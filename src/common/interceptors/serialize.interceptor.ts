@@ -1,16 +1,10 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
-import { map, Observable } from 'rxjs'
+import type { Observable } from 'rxjs'
 
+/** 输出转换的扩展点；禁止打印完整请求头或响应，避免泄露凭证。 */
 @Injectable()
 export class SerializeInterceptor implements NestInterceptor {
-	intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-		const req = context.switchToHttp().getRequest()
-		console.log('全局拦截器执行之前拿 req.headers\n', req.headers)
-		return next.handle().pipe(
-			map(data => {
-				console.log('全局拦截器执行之后的 response\n', data)
-				return data
-			})
-		)
+	intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+		return next.handle()
 	}
 }

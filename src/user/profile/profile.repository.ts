@@ -4,18 +4,7 @@ import type { Repository } from 'typeorm'
 import type { ResultSetHeader } from 'mysql2'
 import UserProfile from '../profile/profile.entity.ts'
 import type { UpdateProfileDto } from '../dto/update-profile.dto.ts'
-
-/** 原生 SQL 查询返回的扁平用户资料，不包含密码字段。 */
-type ProfileRow = {
-	userId: number
-	username: string
-	phone: string | null
-	email: string | null
-	nickname: string | null
-	gender: number | null
-	photo: string | null
-	address: string | null
-}
+import type { UserProfileRow } from '../user.types.ts'
 
 /** 封装资料查询和部分更新，保留 TypeORM 与原生 SQL 两种学习实现。 */
 @Injectable()
@@ -29,11 +18,11 @@ export default class ProfileRpst {
 	 * @returns 扁平资料对象，包含用户名、联系方式及资料字段。
 	 * @throws NotFoundException - 用户不存在、已停用，或尚未创建资料。
 	 */
-	async getProfileWithSql(userId: number) {
+	async getProfileWithSql(userId: number): Promise<UserProfileRow> {
 		const dataSql = `
       SELECT
         p.userId,
-        ur.roleId AS roleId,
+        u.roleId,
         u.username,
         u.phone,
         u.email,
@@ -43,11 +32,9 @@ export default class ProfileRpst {
         p.address
       FROM profile AS p
         INNER JOIN \`user\` AS u ON p.userId = u.id
-        LEFT JOIN \`users_roles\` AS ur ON p.userId = ur.userId
       WHERE u.id = ? AND u.isActive = 1
-      ORDER BY ur.roleId
     `
-		const profiles = await this.profileRepst.query<ProfileRow[]>(dataSql, [userId])
+		const profiles = await this.profileRepst.query<UserProfileRow[]>(dataSql, [userId])
 
 		if (profiles.length === 0) throw new NotFoundException('没有查询到用户信息')
 
@@ -59,13 +46,13 @@ export default class ProfileRpst {
 	 *
 	 * @remarks
 	 * 显式选择 user 字段，避免把密码等内部字段带入返回值。
-	 * 返回字段与原生 SQL 版本对应；实体中的可空可选属性在 TS 类型上还包含 undefined。
+	 * roleId 直接读取用户外键，不额外加载角色表；可空字段与 SQL 版本统一为 null。
 	 *
 	 * @param userId - 用户主键，也是 profile 表的共享主键。
 	 * @returns 用户基本信息与资料组成的单个对象。
 	 * @throws NotFoundException - 用户不存在、已停用，或尚未创建资料。
 	 */
-	async getProfileById(userId: number) {
+	async getProfileById(userId: number): Promise<UserProfileRow> {
 		const profile = await this.profileRepst.findOne({
 			where: {
 				userId,
@@ -73,11 +60,7 @@ export default class ProfileRpst {
 					isActive: true,
 				},
 			},
-			relations: {
-				user: {
-					role: true,
-				},
-			},
+			relations: { user: true },
 			select: {
 				userId: true,
 				nickname: true,
@@ -88,9 +71,7 @@ export default class ProfileRpst {
 					username: true,
 					phone: true,
 					email: true,
-					role: {
-						id: true,
-					},
+					roleId: true,
 				},
 			},
 		})
@@ -100,13 +81,13 @@ export default class ProfileRpst {
 		return {
 			userId: profile.userId,
 			username: profile.user.username,
-			nickname: profile.nickname,
-			phone: profile.user.phone,
-			email: profile.user.email,
-			gender: profile.gender,
-			photo: profile.photo,
-			address: profile.address,
-			roleId: profile.user.role.map(role => role.id),
+			nickname: profile.nickname ?? null,
+			phone: profile.user.phone ?? null,
+			email: profile.user.email ?? null,
+			gender: profile.gender ?? null,
+			photo: profile.photo ?? null,
+			address: profile.address ?? null,
+			roleId: profile.user.roleId,
 		}
 	}
 

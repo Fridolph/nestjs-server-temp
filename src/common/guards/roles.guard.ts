@@ -48,15 +48,14 @@ export class RolesGuard implements CanActivate {
 			throw new UnauthorizedException('请先登录')
 		}
 
-		// 假设该方法返回用户的 isActive 和 roles。
+		// 读取当前数据库角色，避免 JWT 内旧角色继续生效。
 		const user = await this.userService.findForRole(userId)
-		console.log('user', user)
 
 		if (!user?.isActive) {
 			throw new ForbiddenException('用户不存在或已被停用')
 		}
 
-		const hasRequiredRole = user.role.some(role => requiredRoles.includes(role.roleCode as any))
+		const hasRequiredRole = requiredRoles.some(code => code === user.role.roleCode)
 
 		if (!hasRequiredRole) {
 			throw new ForbiddenException('没有该操作权限')

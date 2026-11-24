@@ -5,9 +5,10 @@ import {
 	Entity,
 	PrimaryGeneratedColumn,
 	Column,
+	Index,
 	OneToMany,
-	ManyToMany,
-	JoinTable,
+	ManyToOne,
+	JoinColumn,
 	OneToOne,
 	AfterInsert,
 	AfterRemove,
@@ -80,19 +81,14 @@ export default class User {
 	@OneToMany(() => Logs, logs => logs.user, { cascade: true })
 	logs: Relation<Logs[]>
 
-	@ManyToMany(() => Roles, roles => roles.users, { cascade: ['insert'] })
-	@JoinTable({
-		name: 'users_roles',
-		joinColumn: {
-			name: 'userId',
-			referencedColumnName: 'id',
-		},
-		inverseJoinColumn: {
-			name: 'roleId',
-			referencedColumnName: 'id',
-		},
-	})
-	role: Relation<Roles[]>
+	// 单个用户恰好一个角色；角色删除受外键保护，不级联删除用户。
+	@Index('IDX_user_roleId')
+	@Column({ type: 'int' })
+	roleId: number
+
+	@ManyToOne(() => Roles, roles => roles.users, { nullable: false, onDelete: 'RESTRICT' })
+	@JoinColumn({ name: 'roleId', foreignKeyConstraintName: 'FK_user_role' })
+	role: Relation<Roles>
 
 	@AfterInsert()
 	afterInsert() {

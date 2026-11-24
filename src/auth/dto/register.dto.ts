@@ -14,6 +14,6 @@ export const registerOutputSchema = z.strictObject({
 	username: z.string(),
 	accessToken: z.string(),
 	tokenType: z.literal('Bearer'),
-	roleId: z.array(z.number()),
+	roleId: z.number(),
 })
 export type RegisterResponseDto = z.output<typeof registerOutputSchema>

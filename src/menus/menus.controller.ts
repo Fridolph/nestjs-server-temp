@@ -23,13 +23,14 @@ import { Roles } from '../common/decorators/roles.decorator.ts'
 import { AdminGuard } from '../common/guards/admin.guard.ts'
 
 @Controller('menus')
+@UseGuards(JwtGuard)
 export class MenusController {
 	constructor(private readonly menusService: MenusService) {}
 
 	@Post()
 	@Roles('premium', 'guest')
-	@UseGuards(JwtGuard, RolesGuard)
-	// @UseGuards(JwtGuard, AdminGuard)
+	@UseGuards(RolesGuard)
+	// @UseGuards(AdminGuard)
 	async create(@Body(new ZodValidationPipe(createMenuSchema)) dto: CreateMenuDto) {
 		await this.menusService.create(dto)
 		return { code: 200, data: true, msg: '创建新菜单' }
@@ -42,7 +43,7 @@ export class MenusController {
 	}
 
 	@Patch(':id')
-	@UseGuards(JwtGuard, AdminGuard)
+	@UseGuards(AdminGuard)
 	async update(
 		@Param('id', ParseIntPipe) id: number,
 		@Body(new ZodValidationPipe(updateMenuBodyBaseSchema)) dto: UpdateMenuBodyDto
@@ -52,7 +53,7 @@ export class MenusController {
 	}
 
 	@Delete(':id')
-	@UseGuards(JwtGuard, AdminGuard)
+	@UseGuards(AdminGuard)
 	async remove(@Param('id', ParseIntPipe) id: number) {
 		const isRemoved = await this.menusService.removeById(id)
 		return { code: 200, data: isRemoved, msg: '成功删除菜单项' }

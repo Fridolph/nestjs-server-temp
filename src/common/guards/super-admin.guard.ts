@@ -13,7 +13,7 @@ export class SuperAdminGuard implements CanActivate {
 		const userId = request.user?.userId
 		if (!userId) throw new ForbiddenException('无法识别当前用户')
 		const user = await this.users.findOne({ where: { id: userId }, relations: { role: true } })
-		if (!user?.role.some(role => role.roleCode === 'super_admin'))
+		if (user?.role.roleCode !== 'super_admin')
 			throw new ForbiddenException('只有超管可以管理角色')
 		return true
 	}

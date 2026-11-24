@@ -22,12 +22,12 @@ export class MenusService {
 	async findWithRoleId(userId: number) {
 		const sql = `
     SELECT DISTINCT m.*
-    FROM users_roles AS ur
+    FROM user AS u
     INNER JOIN roles_menus AS rm
-      ON rm.roleId = ur.roleId
+      ON rm.roleId = u.roleId
     INNER JOIN menus AS m
       ON m.id = rm.menusId
-    WHERE ur.userId = ?
+    WHERE u.id = ?
     ORDER BY m.\`order\` ASC, m.id ASC;`
 		return await this.menusRpst.repository.query<MenuDto[]>(sql, [userId])
 	}

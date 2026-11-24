@@ -14,7 +14,7 @@ export default class UserDeleteRpst {
 	 *
 	 * @remarks
 	 * 使用 delete 直接执行删除，不触发加载实体后 remove 对应的实体监听器。
-	 * users_roles 和 logs 的处理依赖实际数据库外键规则，本方法未显式清理。
+	 * 角色是 user.roleId 外键，删除用户不会删除共享角色；logs 依赖实际外键规则。
 	 * 用户不存在或删除受外键阻止时，资料删除也会回滚。
 	 *
 	 * @param userId - 已校验的用户主键。

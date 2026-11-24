@@ -19,15 +19,16 @@ export default class UserUpdateRpst {
 
 			if (dto.roleCode !== undefined) {
 				const actor = await users.findOne({ where: { id: actorId }, relations: { role: true } })
-				if (!actor?.role.some(role => role.roleCode === 'super_admin')) {
+				if (actor?.role.roleCode !== 'super_admin') {
 					throw new ForbiddenException('只有超管可以修改用户角色')
 				}
-				if (target.role.some(role => role.roleCode === 'super_admin')) {
+				if (target.role.roleCode === 'super_admin') {
 					throw new ForbiddenException('超管角色不可修改')
 				}
 				const role = await manager.getRepository(Roles).findOneBy({ roleCode: dto.roleCode })
 				if (!role) throw new NotFoundException('所选角色不存在')
-				target.role = [role]
+				target.role = role
+				target.roleId = role.id
 			}
 
 			if (dto.phone !== undefined) target.phone = dto.phone

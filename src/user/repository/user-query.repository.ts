@@ -18,12 +18,11 @@ export default class UserQueryRpst {
 	 *
 	 * @remarks
 	 * 缺省分页为第 1 页、每页 10 条；只对未提供的值兜底，非法值仍拒绝。
-	 * 列表与 COUNT 共用条件；角色筛选使用 EXISTS，避免多角色造成重复用户。
-	 * 角色按当前页用户 ID 一次查询，再在内存中归组，避免逐用户查询。
-	 * 三次查询未使用快照事务，并发写入时列表、总数和角色可能存在时间差。
+	 * 列表与 COUNT 共用条件，直接按 user.roleId 关联唯一角色。
+	 * 两次查询未使用快照事务，并发写入时列表与总数可能存在时间差。
 	 *
 	 * @param query - 已归一化的用户筛选条件和可选分页参数。
-	 * @returns 当前页用户及角色 code 数组，以及转换为 number 的总数。
+	 * @returns 当前页用户及单个角色编码，以及转换为 number 的总数。
 	 */
 	async findWithFilters(query: UserListCriteria = {}) {
 		const { id, username, gender, profileId, role } = query
@@ -50,12 +49,7 @@ export default class UserQueryRpst {
 			},
 			{
 				value: role,
-				sql: `EXISTS (
-        SELECT 1
-        FROM users_roles AS ur
-        WHERE ur.userId = u.id
-          AND ur.roleId = ?
-      )`,
+				sql: 'u.roleId = ?',
 			},
 		]
 
@@ -73,6 +67,7 @@ export default class UserQueryRpst {
 		const fromSql = `
     FROM \`user\` AS u
     LEFT JOIN profile AS p ON p.userId = u.id
+    INNER JOIN roles AS r ON r.id = u.roleId
     WHERE ${conditions.join(' AND ')}
   `
 
@@ -80,6 +75,8 @@ export default class UserQueryRpst {
     SELECT
       u.id AS userId,
       u.username,
+      u.roleId,
+      r.code AS roleCode,
       u.phone,
       u.email,
       p.nickname,
@@ -104,26 +101,9 @@ export default class UserQueryRpst {
 			parameters
 		)
 
-		// 查询当前页用户的角色
-		const userIds = rows.map(row => row.userId)
-		const roleRows = await this.findRolesByUserIds(userIds)
-
-		// 按用户 ID 整理角色
-		const rolesByUserId = new Map<number, string[]>()
-
-		for (const role of roleRows) {
-			const list = rolesByUserId.get(role.userId) ?? []
-			list.push(role.roleCode)
-			rolesByUserId.set(role.userId, list)
-		}
-
-		const data = rows.map(row => ({
-			...row,
-			roles: rolesByUserId.get(row.userId) ?? [],
-		}))
 
 		return {
-			data,
+			data: rows,
 			total: Number(count.totalCount),
 		}
 	}
@@ -132,39 +112,16 @@ export default class UserQueryRpst {
 	 * 按用户名精确查询登录凭据，与不包含密码的列表查询分开。
 	 *
 	 * 用户名通过占位符绑定，不使用 LIKE；大小写规则由数据库列的排序规则决定。
-	 * 关联角色并归组为 roleId 数组，不查询资料或 COUNT；密码只在服务内部用于比对。
+	 * 读取唯一的 roleId，不查询资料或 COUNT；密码只在服务内部用于比对。
 	 * @returns 凭据行；未匹配时返回 null，由 AuthService 统一处理认证失败。
 	 */
 	async findOneByUsername(username: string): Promise<UserAuthRow | null> {
-		const rows = await this.repository.query<
-			(Omit<UserAuthRow, 'roleId'> & { roleId: number | null })[]
-		>(
-			`
-        SELECT
-          u.id,
-          u.username,
-          u.password,
-          u.isActive,
-          ur.roleId
-        FROM \`user\` AS u LEFT JOIN \`users_roles\` AS ur
-          ON ur.userId = u.id
-        WHERE u.username = ?
-      `,
-			[username]
-		)
-
-		if (rows.length === 0) {
-			return null
-		}
-		const first = rows[0]
-
-		return {
-			id: first.id,
-			username: first.username,
-			password: first.password,
-			isActive: first.isActive,
-			roleId: rows.map(row => row.roleId).filter((roleId): roleId is number => roleId !== null),
-		}
+		const rows = await this.repository.query<UserAuthRow[]>(`
+      SELECT u.id, u.username, u.password, u.isActive, u.roleId
+      FROM \`user\` AS u
+      WHERE u.username = ?
+    `, [username])
+		return rows[0] ?? null
 	}
 
 	/**
@@ -174,7 +131,7 @@ export default class UserQueryRpst {
 	 * ID 必须为正整数，避免缺少 ID 时退化成查询任意用户；固定只取一条。
 	 *
 	 * @param query - 必传的目标用户 ID。
-	 * @returns 用户资料及角色 code 数组。
+	 * @returns 用户资料及单个角色编码。
 	 * @throws NotFoundException - 查询执行成功但未匹配到启用用户。
 	 */
 	async findById(userId: number) {
@@ -212,14 +169,14 @@ export default class UserQueryRpst {
 		return await this.repository.query<UserRoleRow[]>(
 			`
         SELECT
-          ur.userId,
+          u.id AS userId,
           r.id AS roleId,
           r.code AS roleCode,
           r.name AS roleName
-        FROM users_roles AS ur
-        INNER JOIN roles AS r ON r.id = ur.roleId
-        WHERE ur.userId IN (${placeholders})
-        ORDER BY ur.userId, r.id
+        FROM user AS u
+        INNER JOIN roles AS r ON r.id = u.roleId
+        WHERE u.id IN (${placeholders})
+        ORDER BY u.id, r.id
       `,
 			userIds
 		)

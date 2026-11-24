@@ -4,7 +4,7 @@ import { AppModule } from './app.module.js'
 import { ConfigService } from '@nestjs/config'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { AllExceptionFilter } from './common/filters/all-exception.filter.ts'
-import { SerializeInterceptor } from './common/interceptors/serialize.interceptor.ts'
+import { AuthHttp } from './auth/auth-http.ts'
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule, {
@@ -30,11 +30,9 @@ async function bootstrap() {
 	// )
 
 	// 全局拦截器
-	app.useGlobalInterceptors(new SerializeInterceptor())
+	// 认证响应包含令牌，不记录完整响应或请求 headers。
 
-	app.enableCors({
-		origin: ['http://localhost:3050', 'http://127.0.0.1:3050', '*'],
-	})
+	app.enableCors(app.get(AuthHttp).corsOptions)
 
 	const port = Number(configService.get<string>('SERVER_PORT') ?? '3000')
 	await app.listen(process.env.SERVER_PORT ?? port)

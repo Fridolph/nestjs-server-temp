@@ -11,6 +11,7 @@ import { PermissionsService } from '../permissions.service.ts'
 import { PermissionsRepository } from '../permissions.repository.ts'
 import { CaslAbilityService } from '../../auth/casl.alibity.service.ts'
 import { JwtStrategy } from '../../auth/auth.strategy.ts'
+import { AuthSessionService } from '../../auth/auth-session.service.ts'
 import { CaslGuard } from '../../common/guards/casl.guard.ts'
 import { JwtGuard } from '../../common/guards/jwt.guard.ts'
 import { CaslResourceRegistry } from '../../common/casl/casl-resource.registry.ts'
@@ -64,6 +65,8 @@ describe('/permissions 授权 HTTP 链路', () => {
 				CaslGuard,
 				JwtGuard,
 				JwtStrategy,
+				// 此套件只隔离会话持久化；撤销与续期由 auth HTTP 套件覆盖。
+				{ provide: AuthSessionService, useValue: { validate: async (payload: { userId: number }) => ({ userId: payload.userId }) } },
 				{ provide: PermissionsRepository, useValue: repository },
 				{ provide: ConfigService, useValue: { getOrThrow: () => 'casl-test-only-secret' } },
 				{

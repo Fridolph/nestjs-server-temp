@@ -10,7 +10,7 @@ describe('权限持久化契约', () => {
 		const query = vi.fn().mockResolvedValue([])
 		const repository = new PermissionsRepository({ query } as unknown as Repository<Permissions>)
 		await repository.findEffectivePermissions(18)
-		expect(query).toHaveBeenCalledWith(expect.stringContaining('ur.userId = ?'), [18])
+		expect(query).toHaveBeenCalledWith(expect.stringContaining('u.id = ?'), [18])
 		expect(query.mock.calls[0][0]).toContain('CAST(p.fields AS CHAR) AS fields')
 		expect(query.mock.calls[0][0]).toContain('p.enabled = 1')
 		await repository.findUserAccess(18)

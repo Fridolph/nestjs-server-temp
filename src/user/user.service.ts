@@ -107,7 +107,7 @@ export class UserService {
 			data: {
 				userId: newUser.id,
 				username: newUser.username,
-				roleId: newUser.role.map(role => role.id),
+				roleId: newUser.roleId,
 			},
 			msg: `[${newUser.id}: ${newUser.username}] 注册成功`,
 		}

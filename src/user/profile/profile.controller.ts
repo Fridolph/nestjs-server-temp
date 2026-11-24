@@ -4,9 +4,11 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.ts'
 import { updateProfileSchema } from '../dto/update-profile.dto.ts'
 import { ProfileService } from './profile.service.ts'
 import { AdminGuard } from '../../common/guards/admin.guard.ts'
-import { AuthGuard } from '@nestjs/passport'
+import { JwtGuard } from '../../common/guards/jwt.guard.ts'
+import { SelfOrSuperGuard } from '../../common/guards/self-or-super.guard.ts'
 
 @Controller()
+@UseGuards(JwtGuard)
 export class ProfileController {
 	constructor(private readonly profileService: ProfileService) {}
 
@@ -19,7 +21,7 @@ export class ProfileController {
 	@Get('users/:userId/profile')
 	// 装饰器的执行顺序：方法装饰器若有多个，从下往上执行
 	// 若用方法，则是从左到右依次执行，前面没通过后面不会执行
-	@UseGuards(AuthGuard('jwt'), AdminGuard)
+	@UseGuards(AdminGuard)
 	getUserProfile(@Param('userId', ParseIntPipe) userId: number) {
 		return this.profileService.getUserProfile(userId)
 	}
@@ -32,6 +34,7 @@ export class ProfileController {
 	 * @returns 更新成功响应。
 	 */
 	@Patch('users/:id/profile')
+	@UseGuards(SelfOrSuperGuard)
 	updateUserProfile(
 		@Param('id', ParseIntPipe) id: number,
 		@Body(new ZodValidationPipe(updateProfileSchema)) updateProfileDto: UpdateProfileDto

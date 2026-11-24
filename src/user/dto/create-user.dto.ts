@@ -13,10 +13,9 @@ export const createUserSchema = z.strictObject({
 				message: '密码不能只用数字或字母，请组合至少两类字符',
 			}
 		),
-	roleId: z
-		.array(z.number().int().positive().max(Number.MAX_SAFE_INTEGER))
-		.min(1, '请至少选择一个角色')
-		.refine(ids => new Set(ids).size === ids.length, '角色不能重复'),
+	// 管理员创建时必选一个已有角色；禁止分配超管由仓库按 code 检查。
+	roleId: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+
 	nickname: z
 		.string()
 		.trim()

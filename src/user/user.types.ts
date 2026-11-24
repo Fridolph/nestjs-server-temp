@@ -7,7 +7,8 @@ export type { CreateUserDto, UpdateProfileDto }
 export interface UserIdentity {
 	userId: number
 	username: string
-	roleId: number[]
+	/** 用户唯一角色的主键。 */
+	roleId: number
 }
 
 /** 仅供内部认证读取；不得直接返回接口或写入 JWT、日志。 */
@@ -16,7 +17,7 @@ export interface UserAuthRow {
 	username: string
 	password: string | null
 	isActive: number | boolean
-	roleId: number[]
+	roleId: number
 }
 
 /** 用户列表的 HTTP 查询参数。 */
@@ -52,6 +53,8 @@ export interface UpdateUserDto {
 export interface UserRow {
 	userId: number
 	username: string
+	roleId: number
+	roleCode: string
 	phone: string | null
 	email: string | null
 	nickname: string | null
@@ -60,6 +63,11 @@ export interface UserRow {
 	photo: string | null
 	address: string | null
 }
+
+/** SQL 与 TypeORM 两种资料查询共用的响应字段；roleId 始终为单个角色 ID。 */
+export type UserProfileRow = Pick<UserRow,
+	'userId' | 'username' | 'roleId' | 'phone' | 'email' | 'nickname' | 'gender' | 'photo' | 'address'
+>
 
 /** 用户角色关联 SQL 的单行结果；不包含用户名或资料字段。 */
 export interface UserRoleRow {

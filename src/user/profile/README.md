@@ -50,7 +50,7 @@ Pipe 抛出的异常包含 `statusCode`、`message` 与 `errors`，每个错误�
 ## Repository 分层复盘
 
 - Controller 绑定 Pipe 并接收 HTTP 参数，Service 负责业务编排与响应，Repository 封装查询和持久化细节。
-- 当前创建仓库持有跨 user、users_roles、profile 的事务，所有操作沿用同一个 manager，事务没有因抽文件而被拆散。
+- 当前创建仓库持有跨 user（含 roleId 外键）、profile 的事务，所有操作沿用同一个 manager，事务没有因抽文件而被拆散。
 - Repository 返回实体、查询行或影响行数，删除与更新响应统一由 Service 组装。
 - Service 已移除重构前未使用的 TypeORM 仓库注入，数据库访问集中在 Repository。
 - TypeORM 与 SQL 版本用于学习对照可以保留，但字段、空值语义、存在性判断和返回结构应保持一致。

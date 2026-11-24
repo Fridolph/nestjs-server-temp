@@ -1,16 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { UserService } from '../user/user.service.ts'
 import type { RegisterInputDto } from './dto/register.dto.ts'
-import { JwtService } from '@nestjs/jwt'
+import { AuthSessionService } from './auth-session.service.ts'
 import argon2 from 'argon2'
-import { registerOutputSchema } from './dto/register.dto.ts'
-import type { UserIdentity } from '../user/user.types.ts'
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private readonly userService: UserService,
-		private readonly jwtService: JwtService
+		private readonly sessions: AuthSessionService
 	) {}
 
 	/** 校验启用用户的凭据并签发 JWT，不返回密码或完整用户记录。 */
@@ -23,31 +21,20 @@ export class AuthService {
 		if (!(await argon2.verify(user.password, password))) {
 			throw new UnauthorizedException('用户名或密码错误')
 		}
-		return this.issueAuthResponse(
-			{ userId: user.id, username: user.username, roleId: user.roleId },
-			'登录成功'
-		)
+		return this.sessions.create({ userId: user.id, username: user.username, roleId: user.roleId })
 	}
 
-	logout() {}
+	/** 撤销当前会话；不影响同一用户的其他设备。 */
+	async logout(refreshToken: string | undefined, bearer: string | undefined) {
+		await this.sessions.logout(refreshToken, bearer)
+		return { code: 200, data: true, msg: '已退出登录' }
+	}
+
+	refresh(refreshToken: string | undefined) { return this.sessions.refresh(refreshToken) }
 
 	/** 自助注册固定分配普通用户角色，创建事务提交后自动登录。 */
 	async register(dto: RegisterInputDto) {
 		const { data: identity } = await this.userService.register(dto)
-		return this.issueAuthResponse(identity, '注册成功')
-	}
-
-	/** 登录和注册共用签发及响应白名单；仅接收已验证或已创建的用户身份。 */
-	private async issueAuthResponse(identity: UserIdentity, msg: string) {
-		const { userId, username, roleId } = identity
-		const accessToken = await this.jwtService.signAsync({ userId, username, roleId })
-		const data = registerOutputSchema.parse({
-			userId,
-			username,
-			roleId,
-			accessToken,
-			tokenType: 'Bearer',
-		})
-		return data
+		return this.sessions.create(identity)
 	}
 }

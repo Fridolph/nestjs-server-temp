@@ -21,8 +21,7 @@ export class PermissionsRepository {
 			`
 			SELECT u.id AS userId, u.isActive, r.code AS roleCode
 			FROM \`user\` AS u
-			LEFT JOIN users_roles AS ur ON ur.userId = u.id
-			LEFT JOIN roles AS r ON r.id = ur.roleId
+			LEFT JOIN roles AS r ON r.id = u.roleId
 			WHERE u.id = ?
 		`,
 			[userId]
@@ -30,17 +29,17 @@ export class PermissionsRepository {
 	}
 
 	/**
-	 * 多角色取允许权限并集，SQL 去重；禁用权限不参与授权。
+	 * 读取唯一角色的允许权限，SQL 去重；禁用权限不参与授权。
 	 * JSON 转文本以区分 SQL NULL 与 JSON null，后者必须报配置错误而不是扩大权限。
 	 */
 	findEffectivePermissions(userId: number) {
 		return this.repository.query<unknown[]>(
 			`
 			SELECT DISTINCT p.code, p.resource, p.action, CAST(p.fields AS CHAR) AS fields
-			FROM users_roles AS ur
-			INNER JOIN roles_permissions AS rp ON rp.roleId = ur.roleId
+			FROM user AS u
+			INNER JOIN roles_permissions AS rp ON rp.roleId = u.roleId
 			INNER JOIN permissions AS p ON p.id = rp.permissionId
-			WHERE ur.userId = ? AND p.enabled = 1
+			WHERE u.id = ? AND p.enabled = 1
 			ORDER BY p.code
 		`,
 			[userId]

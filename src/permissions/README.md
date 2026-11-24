@@ -67,7 +67,7 @@ pnpm run migration:run
 
 `fields` 的 SQL NULL 表示不限字段；JSON 数组表示字段集合。缺失列、JSON null、空数组、重复字段、未知字段和非法 JSON 均不退化为不限字段。显式的无字段限制规则会覆盖同资源同动作的局部字段限制，因此不要同时分配两者后期待局部限制缩小授权。
 
-角色仍是多对多。角色由 `users_roles(userId, roleId)` 关联，权限由 `roles_permissions(roleId, permissionId)` 关联。注册时固定普通用户、超管角色分配保护沿用已有业务。
+用户通过 `user.roleId` 外键关联唯一角色；一个角色可分配给多个用户。角色与权限仍通过 `roles_permissions(roleId, permissionId)` 多对多关联。注册时固定普通用户、超管角色分配保护沿用已有业务。
 
 `super_admin` 来自数据库当前角色编码，生成 `manage/all`；普通角色即使被关联权限表的 `all/manage` 记录也会报权限配置错误（HTTP 500），不会提权。配置错误与正常缺少权限（403）分开。
 

@@ -26,7 +26,7 @@ export class AdminGuard implements CanActivate {
 		const user = await this.us.findForRole(userId)
 		if (
 			!user?.isActive ||
-			!user?.role.some(role => ['super_admin', 'admin'].includes(role.roleCode))
+			!['super_admin', 'admin'].includes(user.role.roleCode)
 		) {
 			throw new ForbiddenException('没有管理员权限')
 		}

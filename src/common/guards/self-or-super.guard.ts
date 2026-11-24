@@ -7,12 +7,12 @@ import {
 	UnauthorizedException,
 } from '@nestjs/common'
 
-// 超级管理员的实际角色 ID
-const SUPER_ADMIN_ROLE_ID = 1
+import { UserService } from '../../user/user.service.ts'
 
 @Injectable()
 export class SelfOrSuperGuard implements CanActivate {
-	canActivate(context: ExecutionContext): boolean {
+	constructor(private readonly users: UserService) {}
+	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const req = context.switchToHttp().getRequest()
 		const currentUser = req.user
 
@@ -31,8 +31,8 @@ export class SelfOrSuperGuard implements CanActivate {
 		}
 
 		const isSelf = currentUser.userId === targetUserId
-		const roleId = Array.isArray(currentUser.roleId) ? currentUser.roleId : [currentUser.roleId]
-		const isSuperAdmin = roleId.includes(SUPER_ADMIN_ROLE_ID)
+		const user = await this.users.findForRole(currentUser.userId)
+		const isSuperAdmin = user.isActive && user.role.roleCode === 'super_admin'
 
 		if (!isSelf && !isSuperAdmin) {
 			throw new ForbiddenException('没有权限修改该用户资料')
